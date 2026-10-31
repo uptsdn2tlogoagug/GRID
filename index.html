@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Generator Foto GPS</title>
+<title>GRID — Generator Foto GPS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
 :root{--bg:#f3f5f9;--card:#fff;--tx:#0f172a;--mut:#64748b;--bd:#e3e8ef;--fld:#f6f8fb;--ac:#0d9488;--ac2:#0891b2;--act:#fff;--sh:0 1px 2px rgba(15,23,42,.04),0 10px 30px rgba(15,23,42,.06);color-scheme:light}
@@ -71,9 +73,112 @@ details[open].card>summary::after{transform:rotate(180deg)}
 .dock{display:none}
 @media (max-width:900px){.dock{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0));background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--bd)}.dock .btn{flex:1}}
 </style>
+<style>
+:root{--bg:#e8edeb;--card:#fbfcfb;--tx:#10201a;--mut:#58695f;--bd:#d3dcd8;--fld:#f0f4f2;--ac:#d98e00;--ac2:#f0b93a;--act:#1f1400;--sb:#0f2a22;--sh:0 1px 2px rgba(16,32,26,.05),0 8px 24px rgba(16,32,26,.06)}
+@media (prefers-color-scheme:dark){:root{--bg:#09130f;--card:#10201a;--tx:#e6f0ea;--mut:#8ea69a;--bd:#21372f;--fld:#0b1813;--ac:#f2b134;--ac2:#ffd166;--act:#241700;--sb:#0b1d17}}
+body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14.5px}
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;background:var(--sb);color:#cfe2d9;display:flex;flex-direction:column;padding:22px 14px;gap:24px}
+.brand{display:flex;gap:11px;align-items:center;padding:0 6px}
+.brand b{display:block;font-size:1.25rem;letter-spacing:.03em;color:#fff;line-height:1.1}
+.brand span{font-size:.74rem;color:#8fb0a2}
+.brand .logo{width:40px;height:40px;border-radius:12px;background:var(--ac);color:var(--act)}
+.brand svg,.nv svg{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.side nav{display:flex;flex-direction:column;gap:4px}
+.nv{display:flex;align-items:center;gap:11px;border:0;background:none;color:inherit;padding:11px 12px;border-radius:11px;cursor:pointer;font-weight:500;text-align:left}
+.nv:hover{background:rgba(255,255,255,.08)}
+.nv.on{background:var(--ac);color:var(--act);font-weight:600}
+.nv:focus-visible,.btn:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.sidefoot{margin-top:auto;font-size:.76rem;color:#7fa090;padding:0 6px;line-height:1.5}
+.content{padding:28px 32px 48px;min-width:0}
+.view{max-width:1240px;margin:auto}
+.view[hidden]{display:none}
+.vh{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.vh h1{margin:0;font-size:2rem;line-height:1.1;letter-spacing:-.025em}
+.vh p{margin:6px 0 0;color:var(--mut)}
+main{max-width:none;padding:0}
+.preview{top:20px}
+.dock{display:none!important}
+.tabs{display:none}
+.btn.pri{color:var(--act)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--sh);overflow:hidden}
+.kpi{padding:20px 22px;border-left:1px solid var(--bd)}
+.kpi:first-child{border-left:0}
+.kpi b{display:block;font-size:2.2rem;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.kpi span{display:block;margin-top:8px;color:var(--mut);font-size:.83rem}
+.dgrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;margin-top:16px}
+.s8{grid-column:span 8}.s4{grid-column:span 4}
+.ct{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+.ct h2{margin:0!important;font-size:1rem}
+.ct small{color:var(--mut)}
+.mapcard{padding:0;overflow:hidden;border-radius:22px;position:relative;min-height:400px;display:flex;flex-direction:column}
+.mapcard .ct{padding:16px 18px 0}
+#dmap{flex:1;min-height:340px;margin:0;border-radius:0;border:0;border-top:1px solid var(--bd);z-index:0}
+#dEmpty{position:absolute;left:16px;right:16px;bottom:16px;z-index:500;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;box-shadow:var(--sh)}
+#dEmpty p{margin:0;color:var(--mut)}
+.chart{width:100%;height:auto;display:block}
+.chart text{font-size:10px;fill:var(--mut)}
+.chart .v{fill:var(--tx);font-weight:600}
+.bar{fill:var(--ac)}.bar.z{fill:var(--bd)}
+.li{display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--bd)}
+.li:first-of-type{border-top:0}
+.li>div{min-width:0;flex:1}
+.li b{display:block;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li small{color:var(--mut)}
+.li time{color:var(--mut);font-size:.76rem;white-space:nowrap}
+.warn{color:var(--ac)}
+.empty-t{color:var(--mut);margin:4px 0 0}
+.acts{display:grid;gap:8px}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.gi{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.gi img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--fld)}
+.gi .gb{padding:12px 14px 14px;display:flex;flex-direction:column;gap:3px;flex:1}
+.gi b{font-size:.92rem;line-height:1.3}
+.gi small{color:var(--mut)}
+.gi .btns{margin-top:auto;padding-top:10px}
+@media (max-width:900px){
+.app{grid-template-columns:1fr}.side{display:none}
+.content{padding:18px 14px 98px}
+.tabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;gap:4px;background:var(--sb);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+.tabs .nv{flex:1;flex-direction:column;gap:3px;font-size:.72rem;padding:8px 4px;align-items:center;color:#cfe2d9}
+.tabs .nv.on{color:var(--act)}
+.s8,.s4{grid-column:span 12}
+.kpis{grid-template-columns:repeat(2,1fr)}
+.kpi:nth-child(3){border-left:0}.kpi:nth-child(n+3){border-top:1px solid var(--bd)}
+.vh h1{font-size:1.6rem}.kpi b{font-size:1.8rem}
+.preview{position:static}
+}
+</style>
 </head>
 <body>
-<header><div class="hd"><div class="logo">📍</div><div><h1>Generator Foto GPS</h1><p>Foto + peta mini + koordinat + tanggal &amp; jam</p></div></div></header>
+<div class="app">
+<aside class="side">
+  <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg></div><div><b>GRID</b><span>Generator foto GPS</span></div></div>
+  <nav><button class="nv" type="button" data-v="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="9" rx="2"/><rect x="13.5" y="3" width="7.5" height="5" rx="2"/><rect x="13.5" y="11" width="7.5" height="10" rx="2"/><rect x="3" y="15" width="7.5" height="6" rx="2"/></svg><span>Dasbor</span></button><button class="nv" type="button" data-v="gen"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg><span>Generator</span></button><button class="nv" type="button" data-v="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><span>Galeri</span></button></nav>
+  <p class="sidefoot">Foto diproses di perangkat Anda dan tidak diunggah ke server.</p>
+</aside>
+<div class="content">
+<section id="v-dash" class="view">
+  <div class="vh"><div><h1 id="greet">Dasbor</h1><p id="today"></p></div>
+    <div class="btns" style="margin:0"><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="dgrid">
+    <div class="card mapcard s8">
+      <div class="ct"><h2>Peta lokasi foto</h2><small id="mapNote"></small></div>
+      <div id="dmap"></div>
+      <div id="dEmpty"><p>Belum ada foto. Tambahkan foto untuk melihat titik lokasinya di peta.</p><button class="btn pri" type="button" data-act="add">Tambah foto</button></div>
+    </div>
+    <div class="s4 col">
+      <div class="card"><div class="ct"><h2>Unduhan 7 hari terakhir</h2></div><div id="chart"></div></div>
+      <div class="card"><div class="ct"><h2>Perlu dilengkapi</h2></div><div id="todo"></div></div>
+    </div>
+    <div class="card s8"><div class="ct"><h2>Unduhan terbaru</h2><small id="histN"></small></div><div id="recent"></div></div>
+    <div class="card s4"><div class="ct"><h2>Pintasan</h2></div>
+      <div class="acts"><button class="btn" type="button" data-act="gen">Buka generator</button><button class="btn" type="button" data-act="gps">Gunakan lokasi saya</button><button class="btn" type="button" data-act="gal">Lihat galeri</button><button class="btn" type="button" data-act="clear">Hapus riwayat unduhan</button></div></div>
+  </div>
+</section>
+<section id="v-gen" class="view" hidden>
+  <div class="vh"><div><h1>Generator</h1><p>Atur lokasi, tanggal, dan tampilan stempel, lalu unduh hasilnya.</p></div></div>
 <main>
 <section class="preview">
   <div class="card">
@@ -160,6 +265,13 @@ details[open].card>summary::after{transform:rotate(180deg)}
   </details>
 </section>
 </main>
+</section>
+<section id="v-gal" class="view" hidden>
+  <div class="vh"><div><h1>Galeri</h1><p id="galN"></p></div><div class="btns" style="margin:0"><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
+  <div class="gal" id="gal"></div>
+</section>
+</div></div>
+<nav class="tabs" aria-label="Menu utama"><button class="nv" type="button" data-v="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="9" rx="2"/><rect x="13.5" y="3" width="7.5" height="5" rx="2"/><rect x="13.5" y="11" width="7.5" height="10" rx="2"/><rect x="3" y="15" width="7.5" height="6" rx="2"/></svg><span>Dasbor</span></button><button class="nv" type="button" data-v="gen"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg><span>Generator</span></button><button class="nv" type="button" data-v="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><span>Galeri</span></button></nav>
 
 <div class="dock">
   <button class="btn pri" id="dl2" type="button" disabled>⬇️ Unduh JPG</button>
@@ -336,10 +448,10 @@ function decode(file,max){
   });
 }
 function mkThumb(c){
-  const t=document.createElement('canvas');t.width=t.height=96;
+  const t=document.createElement('canvas');t.width=t.height=240;
   const s=Math.min(c.width,c.height);
-  t.getContext('2d').drawImage(c,(c.width-s)/2,(c.height-s)/2,s,s,0,0,96,96);
-  return t.toDataURL('image/jpeg',.7);
+  t.getContext('2d').drawImage(c,(c.width-s)/2,(c.height-s)/2,s,s,0,0,240,240);
+  return t.toDataURL('image/jpeg',.75);
 }
 async function addFiles(fs){
   fs=[...fs].filter(f=>f.type.startsWith('image/'));if(!fs.length)return;
@@ -372,6 +484,7 @@ function listThumbs(){
   const has=photos.length>0;
   $('dl').disabled=$('dl2').disabled=$('dlp').disabled=$('del').disabled=!has;$('dlz').disabled=photos.length<2;
   $('stage').classList.toggle('empty',!has);
+  if(window.renderDash)renderDash();
 }
 $('file').addEventListener('change',e=>{const f=[...e.target.files];e.target.value='';addFiles(f)});
 $('stage').addEventListener('click',()=>{if(!photos.length)$('file').click()});
@@ -395,7 +508,7 @@ function saveBlob(b,name){const a=document.createElement('a');a.href=URL.createO
 const fname=(p,i,ext)=>p2(i+1)+'-'+p.name+'-gps.'+ext;
 async function saveCur(type){
   if(cur<0)return;readInputs();msg('Memproses…');
-  try{const b=await blobFor(photos[cur],type);saveBlob(b,fname(photos[cur],cur,type==='image/png'?'png':'jpg'));msg('Selesai.')}
+  try{const b=await blobFor(photos[cur],type);saveBlob(b,fname(photos[cur],cur,type==='image/png'?'png':'jpg'));msg('Selesai.');logExp([photos[cur]])}
   catch(e){msg('Gagal membuat file. Matikan peta mini lalu coba lagi.')}
 }
 $('dl').onclick=$('dl2').onclick=()=>saveCur('image/jpeg');
@@ -407,7 +520,7 @@ $('dlz').onclick=async()=>{
     if(typeof JSZip==='undefined'){msg('Menyiapkan ZIP…');await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')}
     const z=new JSZip();
     for(let i=0;i<photos.length;i++){msg('Memproses '+(i+1)+'/'+photos.length+'…');z.file(fname(photos[i],i,'jpg'),await blobFor(photos[i],'image/jpeg'))}
-    const b=await z.generateAsync({type:'blob',compression:'STORE'});saveBlob(b,'foto-gps.zip');msg('ZIP selesai.');
+    const b=await z.generateAsync({type:'blob',compression:'STORE'});saveBlob(b,'foto-gps.zip');msg('ZIP selesai.');logExp(photos);
   }catch(e){msg('Gagal membuat ZIP. Periksa koneksi lalu coba lagi.')}
 };
 
@@ -541,6 +654,94 @@ $('opa').addEventListener('input',()=>{$('opav').textContent=$('opa').value+'%';
 setPos(START[0],START[1],{noReverse:true});
 setNow();loadInputs();listThumbs();draw();
 setTimeout(()=>map.invalidateSize(),300);
+</script>
+
+<script>
+/* ---------- navigasi & dasbor ---------- */
+const HK='grid-riwayat-v1',VIEWS=['dash','gen','gal'];
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function hist(){try{return JSON.parse(localStorage.getItem(HK))||[]}catch(e){return[]}}
+function logExp(l){const h=hist();l.forEach(p=>h.push({t:Date.now(),n:p.name,ti:p.d.title,la:+p.d.lat,lo:+p.d.lng}));try{localStorage.setItem(HK,JSON.stringify(h.slice(-300)))}catch(e){}renderDash();renderGal()}
+const ago=t=>{const m=Math.round((Date.now()-t)/6e4);return m<1?'baru saja':m<60?m+' mnt lalu':m<1440?Math.round(m/60)+' jam lalu':Math.round(m/1440)+' hari lalu'};
+const okLL=d=>!isNaN(parseFloat(d.lat))&&!isNaN(parseFloat(d.lng));
+function problems(p){const d=p.d,o=[];if(!d.title.trim())o.push('judul kosong');if(!okLL(d))o.push('koordinat kosong');if(!d.date)o.push('tanggal kosong');return o}
+function setView(v){
+  VIEWS.forEach(k=>$('v-'+k).hidden=k!==v);
+  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  if(v==='dash'){renderDash();setTimeout(()=>dmap.invalidateSize(),50)}
+  if(v==='gen')setTimeout(()=>{map.invalidateSize();sched()},50);
+  if(v==='gal')renderGal();
+  try{history.replaceState(null,'','#'+v)}catch(e){}
+  scrollTo(0,0);
+}
+document.querySelector('.tabs').innerHTML=document.querySelector('.side nav').innerHTML;
+document.addEventListener('click',e=>{
+  const n=e.target.closest('[data-v]');if(n){setView(n.dataset.v);return}
+  const a=e.target.closest('[data-act]');if(!a)return;
+  const k=a.dataset.act;
+  if(k==='add')$('file').click();
+  else if(k==='gen'||k==='gal')setView(k);
+  else if(k==='gps'){setView('gen');setTimeout(()=>$('gps').click(),80)}
+  else if(k==='clear'){try{localStorage.removeItem(HK)}catch(x){}renderDash();msg('')}
+  else if(k==='edit'){select(+a.dataset.i).then(()=>setView('gen'))}
+  else if(k==='dl'){select(+a.dataset.i).then(()=>saveCur('image/jpeg'))}
+});
+const _af=addFiles;addFiles=async fs=>{await _af(fs);if(photos.length)setView('gen')};
+
+const dmap=L.map('dmap').setView(START,9);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dmap);
+const dgrp=L.layerGroup().addTo(dmap);
+
+function renderDash(){
+  const h=hist(),now=new Date(),hr=now.getHours();
+  $('greet').textContent=hr<11?'Selamat pagi':hr<15?'Selamat siang':hr<18?'Selamat sore':'Selamat malam';
+  $('today').textContent=now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const pts=photos.map((p,i)=>({p,i})).filter(o=>okLL(o.p.d));
+  const uniq=new Set(pts.map(o=>(+o.p.d.lat).toFixed(5)+','+(+o.p.d.lng).toFixed(5))).size;
+  const td=h.filter(e=>new Date(e.t).toDateString()===now.toDateString()).length;
+  $('kpis').innerHTML=[[photos.length,'Foto di sesi ini'],[uniq,'Lokasi berbeda'],[td,'Diunduh hari ini'],[h.length,'Total diunduh']].map(k=>'<div class="kpi"><b>'+k[0]+'</b><span>'+k[1]+'</span></div>').join('');
+  // peta
+  dgrp.clearLayers();
+  pts.forEach(o=>{
+    L.circleMarker([+o.p.d.lat,+o.p.d.lng],{radius:9,color:'#fff',weight:2.5,fillColor:'#d98e00',fillOpacity:1})
+      .bindTooltip((o.i+1)+'. '+(o.p.d.title||o.p.name)).on('click',()=>{select(o.i).then(()=>setView('gen'))}).addTo(dgrp);
+  });
+  if(pts.length)dmap.fitBounds(L.latLngBounds(pts.map(o=>[+o.p.d.lat,+o.p.d.lng])),{padding:[50,50],maxZoom:16});
+  $('dEmpty').style.display=photos.length?'none':'flex';
+  $('mapNote').textContent=pts.length?pts.length+' titik':'';
+  // grafik
+  const days=[...Array(7)].map((_,i)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-6+i);return d});
+  const c=days.map(d=>h.filter(e=>new Date(e.t).toDateString()===d.toDateString()).length),mx=Math.max(1,...c);
+  $('chart').innerHTML='<svg class="chart" viewBox="0 0 280 120" role="img" aria-label="Jumlah unduhan per hari">'+days.map((d,i)=>{
+    const bh=Math.max(3,Math.round(c[i]/mx*72)),x=8+i*38;
+    return '<rect class="bar'+(c[i]?'':' z')+'" x="'+x+'" y="'+(96-bh)+'" width="26" height="'+bh+'" rx="6"/>'
+      +(c[i]?'<text class="v" x="'+(x+13)+'" y="'+(90-bh)+'" text-anchor="middle">'+c[i]+'</text>':'')
+      +'<text x="'+(x+13)+'" y="112" text-anchor="middle">'+HARI.id[d.getDay()].slice(0,3)+'</text>';
+  }).join('')+'</svg>';
+  // perlu dilengkapi
+  const bad=photos.map((p,i)=>({i,p,o:problems(p)})).filter(x=>x.o.length);
+  $('todo').innerHTML=!photos.length?'<p class="empty-t">Belum ada foto yang dicek.</p>':!bad.length?'<p class="empty-t">Semua foto sudah lengkap dan siap diunduh.</p>'
+    :bad.slice(0,5).map(x=>'<div class="li"><div><b>'+(x.i+1)+'. '+esc(x.p.name)+'</b><small class="warn">'+esc(x.o.join(', '))+'</small></div><button class="btn" type="button" data-act="edit" data-i="'+x.i+'">Lengkapi</button></div>').join('');
+  // terbaru
+  $('histN').textContent=h.length?h.length+' tercatat':'';
+  $('recent').innerHTML=h.length?h.slice(-6).reverse().map(e=>'<div class="li"><div><b>'+esc(e.ti||e.n)+'</b><small>'+(isNaN(e.la)?'-':e.la.toFixed(5)+', '+e.lo.toFixed(5))+'</small></div><time>'+ago(e.t)+'</time></div>').join('')
+    :'<p class="empty-t">Belum ada unduhan. Hasil yang Anda unduh akan tercatat di sini.</p>';
+}
+function renderGal(){
+  const g=$('gal');
+  $('galN').textContent=photos.length?photos.length+' foto di sesi ini':'Foto yang Anda tambahkan tampil di sini.';
+  g.innerHTML=photos.length?photos.map((p,i)=>{
+    const d=p.d,pr=problems(p);
+    return '<div class="card gi"><img src="'+p.th+'" alt="'+esc(p.name)+'"><div class="gb"><b>'+(i+1)+'. '+esc(d.title||p.name)+'</b>'
+      +'<small>'+(d.date?esc(d.date)+' '+esc(d.time):'Tanggal belum diisi')+'</small>'
+      +'<small>'+(okLL(d)?(+d.lat).toFixed(5)+', '+(+d.lng).toFixed(5):'Koordinat belum diisi')+'</small>'
+      +(pr.length?'<small class="warn">Perlu: '+esc(pr.join(', '))+'</small>':'')
+      +'<div class="btns"><button class="btn" type="button" data-act="edit" data-i="'+i+'">Edit</button><button class="btn pri" type="button" data-act="dl" data-i="'+i+'">Unduh</button></div></div></div>';
+  }).join(''):'<div class="card" style="grid-column:1/-1"><p class="empty-t">Belum ada foto. Tambahkan foto untuk mulai membuat stempel GPS.</p></div>';
+}
+const h0=(location.hash||'').slice(1);
+setView(VIEWS.includes(h0)?h0:'dash');
+renderDash();
 </script>
 </body>
 </html>
