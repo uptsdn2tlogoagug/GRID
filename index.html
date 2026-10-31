@@ -195,6 +195,7 @@ input[type=password]:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix
     <div class="btns">
       <button class="btn pri" id="dl" type="button" disabled>⬇️ Unduh JPG</button>
       <button class="btn" id="dlp" type="button" disabled>PNG</button>
+      <button class="btn" id="dla" type="button" disabled>⬇️ Semua file</button>
       <button class="btn" id="dlz" type="button" disabled>📦 ZIP semua</button>
       <button class="btn" id="del" type="button" disabled>🗑 Hapus</button>
     </div>
@@ -273,7 +274,7 @@ input[type=password]:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix
 </main>
 </section>
 <section id="v-gal" class="view" hidden>
-  <div class="vh"><div><h1>Galeri</h1><p id="galN"></p></div><div class="btns" style="margin:0"><button class="btn" type="button" data-act="dbsaveall">Simpan semua ke database</button><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
+  <div class="vh"><div><h1>Galeri</h1><p id="galN"></p></div><div class="btns" style="margin:0"><button class="btn" type="button" data-act="dlall">Unduh semua file</button><button class="btn" type="button" data-act="dbsaveall">Simpan semua ke database</button><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
   <div class="gal" id="gal"></div>
 </section>
 <section id="v-db" class="view" hidden>
@@ -282,6 +283,7 @@ input[type=password]:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix
     <div class="card s4"><div class="ct"><h2>Koneksi</h2></div>
       <label for="dbUrl">Link Apps Script (Web App)</label><input id="dbUrl" type="text" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
       <label for="dbKode">Kode rahasia</label><input id="dbKode" type="password" autocomplete="off">
+      <label class="chk"><input id="dbAuto" type="checkbox" checked> Simpan otomatis ke database saat foto diunduh</label>
       <div class="btns"><button class="btn pri" type="button" data-act="dbcfg">Simpan pengaturan</button><button class="btn" type="button" data-act="dbtest">Tes koneksi</button></div>
       <p id="dbStat" class="hint"></p>
       <p class="hint">Link dan kode hanya disimpan di browser perangkat ini.</p></div>
@@ -501,7 +503,7 @@ function listThumbs(){
   });
   const a=document.createElement('label');a.className='add';a.htmlFor='file';a.textContent='+';a.title='Tambah foto';t.appendChild(a);
   const has=photos.length>0;
-  $('dl').disabled=$('dl2').disabled=$('dlp').disabled=$('del').disabled=!has;$('dlz').disabled=photos.length<2;
+  $('dl').disabled=$('dl2').disabled=$('dlp').disabled=$('del').disabled=!has;$('dlz').disabled=$('dla').disabled=photos.length<2;
   $('stage').classList.toggle('empty',!has);
   if(window.renderDash)renderDash();
 }
@@ -680,7 +682,7 @@ setTimeout(()=>map.invalidateSize(),300);
 const HK='grid-riwayat-v1',VIEWS=['dash','gen','gal','db'];
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function hist(){try{return JSON.parse(localStorage.getItem(HK))||[]}catch(e){return[]}}
-function logExp(l){const h=hist();l.forEach(p=>h.push({t:Date.now(),n:p.name,ti:p.d.title,la:+p.d.lat,lo:+p.d.lng}));try{localStorage.setItem(HK,JSON.stringify(h.slice(-300)))}catch(e){}renderDash();renderGal()}
+function logExp(l){const h=hist();l.forEach(p=>h.push({t:Date.now(),n:p.name,ti:p.d.title,la:+p.d.lat,lo:+p.d.lng}));try{localStorage.setItem(HK,JSON.stringify(h.slice(-300)))}catch(e){}renderDash();renderGal();if(window.autoDb)autoDb(l)}
 const ago=t=>{const m=Math.round((Date.now()-t)/6e4);return m<1?'baru saja':m<60?m+' mnt lalu':m<1440?Math.round(m/60)+' jam lalu':Math.round(m/1440)+' hari lalu'};
 const okLL=d=>!isNaN(parseFloat(d.lat))&&!isNaN(parseFloat(d.lng));
 function problems(p){const d=p.d,o=[];if(!d.title.trim())o.push('judul kosong');if(!okLL(d))o.push('koordinat kosong');if(!d.date)o.push('tanggal kosong');return o}
@@ -811,12 +813,52 @@ document.addEventListener('click',async e=>{
       toast('Membuka foto…');const r=await dbCall('get',{id:a.dataset.id}),m=r.data,bin=atob(r.image),u=new Uint8Array(bin.length);
       for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
       const f=new File([u],m.name+'.jpg',{type:'image/jpeg'}),c=await decode(f,360);
-      photos.push({name:m.name,file:f,th:mkThumb(c),d:Object.assign({},m.d)});
+      photos.push({name:m.name,file:f,th:mkThumb(c),d:Object.assign({},m.d),dbId:m.id,dbSig:JSON.stringify(m.d)});
       await select(photos.length-1,true);setView('gen');toast('')}
     else if(k==='dbdel'){if(!confirm('Hapus foto ini dari database?'))return;await dbCall('delete',{id:a.dataset.id});toast('Foto dihapus.');renderDb()}
     else if(k==='dbrefresh')renderDb();
   }catch(err){if(k==='dbtest'||k==='dbcfg')dbStat(err.message,true);else toast(err.message)}
 });
+</script>
+<script>
+/* ---------- simpan otomatis ke database & unduh semua file ---------- */
+const AUTOK='grid-db-auto';
+const autoOn=()=>{try{return localStorage.getItem(AUTOK)!=='0'}catch(e){return true}};
+$('dbAuto').checked=autoOn();
+$('dbAuto').addEventListener('change',()=>{try{localStorage.setItem(AUTOK,$('dbAuto').checked?'1':'0')}catch(e){}});
+const _ds=dbSave;
+dbSave=async function(p){
+  const sig=JSON.stringify(pick(p.d)),meta={name:p.name,d:pick(p.d)};
+  if(p.dbId&&p.dbSig===sig)return;
+  if(p.dbId){
+    try{await dbCall('update',{id:p.dbId,meta});p.dbSig=sig;return}
+    catch(e){if(!/tidak ditemukan/i.test(e.message))throw e;p.dbId=null}
+  }
+  const r=await _ds(p);p.dbId=r.data.id;p.dbSig=sig;
+};
+async function autoDb(list){
+  const c=dbCfg();if(!c.url||!c.kode||!autoOn())return;
+  let n=0,err='';
+  for(const p of list){
+    const before=p.dbSig;
+    try{await dbSave(p);if(p.dbSig!==before)n++}catch(e){err=e.message}
+  }
+  if(err)toast('Terunduh, tetapi gagal disimpan ke database: '+err);
+  else if(n)toast('Tersimpan juga ke database ('+n+' foto).');
+}
+async function dlAll(){
+  if(!photos.length)return;readInputs();
+  try{
+    for(let i=0;i<photos.length;i++){
+      toast('Mengunduh '+(i+1)+'/'+photos.length+'…');
+      saveBlob(await blobFor(photos[i],'image/jpeg'),fname(photos[i],i,'jpg'));
+      await new Promise(r=>setTimeout(r,450));
+    }
+    toast('Semua file terunduh.');logExp(photos);
+  }catch(e){toast('Gagal mengunduh. Coba lagi.')}
+}
+$('dla').onclick=dlAll;
+document.addEventListener('click',e=>{if(e.target.closest('[data-act="dlall"]'))dlAll()});
 </script>
 </body>
 </html>
