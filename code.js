@@ -54,6 +54,15 @@ function doPost(e) {
         writeIdx_(idx);
         return out_({ ok: true, data: m });
       }
+      case 'update': {
+        const m = idx.find(function (x) { return x.id === r.id; });
+        if (!m) return out_({ ok: false, error: 'Data tidak ditemukan' });
+        m.name = String(r.meta.name || m.name);
+        m.d = r.meta.d;
+        m.updatedAt = new Date().toISOString();
+        writeIdx_(idx);
+        return out_({ ok: true, data: m });
+      }
       case 'get': {
         const m = idx.find(function (x) { return x.id === r.id; });
         if (!m) return out_({ ok: false, error: 'Data tidak ditemukan' });
