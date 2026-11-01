@@ -181,7 +181,6 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
 .lcard .btn{width:100%;justify-content:center;padding:12px}
 #loginErr{min-height:1.3em;margin:10px 0 0;color:#d64545;font-weight:500}
 </style>
-<style>.savebox{margin-top:14px;padding:14px;border:1px solid var(--bd);border-radius:14px;background:var(--fld)}.savehd{font-weight:600}.saverow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;margin-top:10px}.saverow span{color:var(--mut)}.saverow b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}</style>
 </head>
 <body>
 <section id="login" aria-label="Masuk">
@@ -241,13 +240,6 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
       <button class="btn" id="del" type="button" disabled>🗑 Hapus</button>
     </div>
     <div id="msg"></div>
-    <div class="savebox">
-      <div class="savehd">📁 Lokasi simpan</div>
-      <div class="saverow"><span>Foto</span><b id="sdFoto">Bawaan (Unduhan)</b><button class="btn" type="button" data-act="savepick" data-slot="foto">Pilih folder</button></div>
-      <div class="saverow"><span>ZIP</span><b id="sdZip">Sama dengan foto</b><button class="btn" type="button" data-act="savepick" data-slot="zip">Pilih folder</button></div>
-      <div class="btns"><button class="btn" type="button" data-act="savereset">Atur ulang ke bawaan</button></div>
-      <p class="hint" id="saveHint"></p>
-    </div>
     <p class="hint">Lokasi, tanggal, jam, alamat &amp; catatan diatur per foto; tampilan berlaku untuk semua. Hasil unduhan beresolusi asli (maks. 3000 px).</p>
   </div>
 </section>
@@ -963,79 +955,6 @@ document.addEventListener('click',e=>{
   try{localStorage.removeItem(LK);sessionStorage.removeItem(LK)}catch(x){}
   location.reload();
 });
-</script>
-<script>
-/* ---------- lokasi simpan (pilih folder / disk) ---------- */
-const FSA='showDirectoryPicker' in window,dirs={foto:null,zip:null};
-$('saveHint').textContent=FSA?'Pilih folder di disk mana saja, misalnya D:\\FOTO GPS. Windows/Chrome tidak mengizinkan memilih langsung D:\\ atau folder Downloads dan Documents, jadi buat dulu satu folder baru di dalamnya.':'Browser ini belum mendukung pilih folder. Pakai Chrome atau Edge di komputer. Sementara itu file masuk ke folder unduhan bawaan.';
-const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('gps-save',1);r.onupgradeneeded=()=>r.result.createObjectStore('h');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
-async function hGet(k){try{const d=await idb();return await new Promise(res=>{const q=d.transaction('h').objectStore('h').get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})}catch(e){return null}}
-async function hSet(k,v){try{const d=await idb();await new Promise(res=>{const t=d.transaction('h','readwrite'),st=t.objectStore('h');v?st.put(v,k):st.delete(k);t.oncomplete=()=>res();t.onerror=()=>res()})}catch(e){}}
-async function perm(h,ask){const o={mode:'readwrite'};try{if(await h.queryPermission(o)==='granted')return true;if(ask&&await h.requestPermission(o)==='granted')return true}catch(e){}return false}
-async function renderSave(){
-  for(const [k,id] of [['foto','sdFoto'],['zip','sdZip']]){
-    const h=dirs[k],b=document.querySelector('[data-slot="'+k+'"]');let ok=false;
-    try{ok=!!h&&await h.queryPermission({mode:'readwrite'})==='granted'}catch(e){}
-    $(id).textContent=h?h.name+(ok?'':' (perlu izin)'):(k==='zip'?'Sama dengan foto':'Bawaan (Unduhan)');
-    b.textContent=h?(ok?'Ganti':'Izinkan'):'Pilih folder';b.dataset.state=h?(ok?'ok':'ask'):'none';
-  }
-}
-async function pickDir(k){
-  if(!FSA){toast('Browser ini belum mendukung pilih folder.');return}
-  try{const h=await showDirectoryPicker({id:'gps-'+k,mode:'readwrite',startIn:'downloads'});dirs[k]=h;await hSet(k,h);toast('Folder dipilih: '+h.name)}
-  catch(e){if(e.name!=='AbortError')toast('Folder tidak bisa dipilih. Coba folder lain, bukan D:\\ langsung.')}
-  renderSave();
-}
-document.addEventListener('click',async e=>{
-  const a=e.target.closest('[data-act^="save"]');if(!a)return;
-  if(a.dataset.act==='savereset'){dirs.foto=dirs.zip=null;await hSet('foto',null);await hSet('zip',null);toast('Kembali ke folder unduhan bawaan.');renderSave();return}
-  const k=a.dataset.slot;
-  if(a.dataset.state==='ask'&&await perm(dirs[k],true)){toast('Izin diberikan.');renderSave()}else await pickDir(k);
-});
-async function uniq(h,name){
-  const m=name.match(/^(.*?)(\.[^.]*)?$/);let n=name,i=1;
-  for(;;){try{await h.getFileHandle(n);n=m[1]+' ('+(i++)+')'+(m[2]||'')}catch(e){return n}}
-}
-const _sb=saveBlob;
-const TO=(p,ms)=>Promise.race([p,new Promise((_,j)=>setTimeout(()=>j(new Error('waktu habis')),ms))]);
-saveBlob=function(b,n){
-  const z=/\.zip$/i.test(n),h=z?(dirs.zip||dirs.foto):dirs.foto;
-  if(!h){_sb(b,n);toast((/Electron/i.test(navigator.userAgent)?'File dikirim ke Downloads (subfolder GPS atau GRID): ':'File diunduh: ')+n);return}
-  (async()=>{try{
-    if(!(await TO(perm(h,true),4000)))throw new Error('izin folder ditolak');
-    const f=await uniq(h,n),w=await (await h.getFileHandle(f,{create:true})).createWritable();
-    await w.write(b);await w.close();toast('Tersimpan di folder "'+h.name+'": '+f);
-  }catch(err){_sb(b,n);toast('Gagal menyimpan ke folder pilihan ('+(err.message||err.name)+'). File dikirim ke folder unduhan bawaan.')}})();
-};
-(async()=>{for(const k of ['foto','zip'])dirs[k]=await hGet(k);renderSave()})();
-</script>
-<script>
-/* ---------- lokasi simpan khusus aplikasi .exe (folder asli Windows) ---------- */
-if(window.gpsNative){
-  const NAT=window.gpsNative;let nat={foto:null,zip:null};
-  $('saveHint').textContent='Pilih folder di disk mana saja, misalnya D:\\FOTO GPS. Foto dan ZIP langsung disimpan ke folder itu.';
-  renderSave=async function(){
-    try{nat=await NAT.getFolders()}catch(e){}
-    for(const [k,id] of [['foto','sdFoto'],['zip','sdZip']]){
-      const b=document.querySelector('[data-slot="'+k+'"]');
-      $(id).textContent=nat[k]||(k==='zip'?'Sama dengan foto':'Bawaan (Unduhan)');$(id).title=nat[k]||'';
-      b.textContent=nat[k]?'Ganti':'Pilih folder';b.dataset.state=nat[k]?'ok':'none';
-    }
-  };
-  pickDir=async function(k){const r=await NAT.pickFolder(k);if(r){nat=r;toast('Folder dipilih: '+r[k])}renderSave()};
-  document.addEventListener('click',async e=>{if(e.target.closest('[data-act="savereset"]')){await NAT.resetFolders();renderSave()}});
-  const _sb2=saveBlob;
-  saveBlob=function(b,n){
-    const z=/\.zip$/i.test(n);
-    if(!(z?(nat.zip||nat.foto):nat.foto)){_sb2(b,n);return}
-    (async()=>{try{
-      const r=await NAT.save(n,await b.arrayBuffer());
-      if(!r.ok)throw new Error(r.error||'gagal');
-      toast('Tersimpan: '+r.path);
-    }catch(err){_sb2(b,n);toast('Gagal menyimpan ke folder pilihan ('+(err.message||err)+'). File dikirim ke folder unduhan bawaan.')}})();
-  };
-  renderSave();
-}
 </script>
 </body>
 </html>
