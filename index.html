@@ -1009,5 +1009,33 @@ saveBlob=function(b,n){
 };
 (async()=>{for(const k of ['foto','zip'])dirs[k]=await hGet(k);renderSave()})();
 </script>
+<script>
+/* ---------- lokasi simpan khusus aplikasi .exe (folder asli Windows) ---------- */
+if(window.gpsNative){
+  const NAT=window.gpsNative;let nat={foto:null,zip:null};
+  $('saveHint').textContent='Pilih folder di disk mana saja, misalnya D:\\FOTO GPS. Foto dan ZIP langsung disimpan ke folder itu.';
+  renderSave=async function(){
+    try{nat=await NAT.getFolders()}catch(e){}
+    for(const [k,id] of [['foto','sdFoto'],['zip','sdZip']]){
+      const b=document.querySelector('[data-slot="'+k+'"]');
+      $(id).textContent=nat[k]||(k==='zip'?'Sama dengan foto':'Bawaan (Unduhan)');$(id).title=nat[k]||'';
+      b.textContent=nat[k]?'Ganti':'Pilih folder';b.dataset.state=nat[k]?'ok':'none';
+    }
+  };
+  pickDir=async function(k){const r=await NAT.pickFolder(k);if(r){nat=r;toast('Folder dipilih: '+r[k])}renderSave()};
+  document.addEventListener('click',async e=>{if(e.target.closest('[data-act="savereset"]')){await NAT.resetFolders();renderSave()}});
+  const _sb2=saveBlob;
+  saveBlob=function(b,n){
+    const z=/\.zip$/i.test(n);
+    if(!(z?(nat.zip||nat.foto):nat.foto)){_sb2(b,n);return}
+    (async()=>{try{
+      const r=await NAT.save(n,await b.arrayBuffer());
+      if(!r.ok)throw new Error(r.error||'gagal');
+      toast('Tersimpan: '+r.path);
+    }catch(err){_sb2(b,n);toast('Gagal menyimpan ke folder pilihan ('+(err.message||err)+'). File dikirim ke folder unduhan bawaan.')}})();
+  };
+  renderSave();
+}
+</script>
 </body>
 </html>
