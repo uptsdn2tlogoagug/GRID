@@ -155,18 +155,58 @@ input[type=password]:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--sb);color:#fff;padding:10px 16px;border-radius:12px;z-index:60;display:none;max-width:90vw;box-shadow:var(--sh)}
 @media (min-width:901px){#toast{bottom:28px}}
 </style>
+<style>.sidefoot{margin-top:0}.side .nv[data-act="refresh"]{margin-top:auto}.side .nv[data-act="logout"]{margin-top:0}.mrf{display:none}@media (max-width:900px){.mrf{display:inline-flex}}</style>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0f2a22">
+<style>#offBar{display:none;background:var(--ac);color:var(--act);padding:10px 14px;border-radius:12px;margin-bottom:14px;font-weight:500}.off #offBar{display:block}</style>
+<script>
+var GRID_AUTH={k:'grid-auth-v1',h:'4f58424983d2592c1bcded043b261969eddb8d497616d76e3d7fa06b95fbaf7b'};
+try{if(localStorage.getItem(GRID_AUTH.k)!==GRID_AUTH.h&&sessionStorage.getItem(GRID_AUTH.k)!==GRID_AUTH.h)document.documentElement.classList.add('locked')}catch(e){document.documentElement.classList.add('locked')}
+</script>
+<style>
+.locked .app,.locked .tabs,.locked #toast{display:none!important}
+#login{display:none;position:fixed;inset:0;z-index:100;place-items:center;background:var(--sb);padding:20px}
+.locked #login{display:grid}
+.lcard{width:min(400px,100%);background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:22px;padding:30px 28px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.lbrand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.lbrand .logo{width:46px;height:46px;border-radius:14px;background:var(--ac);color:var(--act);display:grid;place-items:center}
+.lbrand svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lbrand b{display:block;font-size:1.4rem;letter-spacing:.03em;line-height:1.1}
+.lbrand span{color:var(--mut);font-size:.85rem}
+.lcard h1{margin:0 0 4px;font-size:1.35rem}
+.lcard p{margin:0 0 16px;color:var(--mut)}
+.lrow{display:flex;gap:8px}
+#loginCode{flex:1;min-width:0;padding:12px 14px;border:1px solid var(--bd);border-radius:11px;background:var(--fld);color:var(--tx);font-size:1rem;outline:none}
+#loginCode:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 22%,transparent)}
+.lcard .chk{display:flex;align-items:center;gap:8px;margin:14px 0}
+.lcard .btn{width:100%;justify-content:center;padding:12px}
+#loginErr{min-height:1.3em;margin:10px 0 0;color:#d64545;font-weight:500}
+</style>
 </head>
 <body>
+<section id="login" aria-label="Masuk">
+<form class="lcard" id="loginForm" autocomplete="off">
+  <div class="lbrand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg></div><div><b>GRID</b><span>Generator foto GPS</span></div></div>
+  <h1>Masuk</h1><p>Masukkan kode akses untuk membuka aplikasi.</p>
+  <label for="loginCode">Kode akses</label>
+  <div class="lrow"><input id="loginCode" type="password" autocomplete="off" required><button class="btn" type="button" id="loginShow" style="width:auto;padding:0 14px">Tampilkan</button></div>
+  <label class="chk"><input id="loginKeep" type="checkbox" checked> Ingat di perangkat ini</label>
+  <button class="btn pri" type="submit">Masuk</button>
+  <p id="loginErr" role="alert"></p>
+</form>
+</section>
 <div class="app">
 <aside class="side">
   <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg></div><div><b>GRID</b><span>Generator foto GPS</span></div></div>
   <nav><button class="nv" type="button" data-v="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="9" rx="2"/><rect x="13.5" y="3" width="7.5" height="5" rx="2"/><rect x="13.5" y="11" width="7.5" height="10" rx="2"/><rect x="3" y="15" width="7.5" height="6" rx="2"/></svg><span>Dasbor</span></button><button class="nv" type="button" data-v="gen"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg><span>Generator</span></button><button class="nv" type="button" data-v="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><span>Galeri</span></button><button class="nv" type="button" data-v="db"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span>Database</span></button></nav>
+  <button class="nv" type="button" data-act="refresh" title="Segarkan (F5)"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg><span>Segarkan</span></button>
+  <button class="nv" type="button" data-act="logout"><svg viewBox="0 0 24 24"><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/></svg><span>Keluar</span></button>
   <p class="sidefoot">Foto diproses di perangkat Anda dan tidak diunggah ke server.</p>
 </aside>
 <div class="content">
+<div id="offBar" role="status">Mode offline: peta hanya tampil di area yang pernah dibuka. Database, pencarian tempat, dan nama alamat otomatis butuh internet.</div>
 <section id="v-dash" class="view">
   <div class="vh"><div><h1 id="greet">Dasbor</h1><p id="today"></p></div>
-    <div class="btns" style="margin:0"><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
+    <div class="btns" style="margin:0"><button class="btn mrf" type="button" data-act="refresh" aria-label="Segarkan">⟳ Segarkan</button><button class="btn mrf" type="button" data-act="logout">Keluar</button><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
   <div class="kpis" id="kpis"></div>
   <div class="dgrid">
     <div class="card mapcard s8">
@@ -873,6 +913,48 @@ $('applyAll').onclick=()=>{
   loadInputs();draw();renderGal();
   toast('Tanggal & jam diterapkan ke '+photos.length+' foto.');
 };
+</script>
+<script>
+/* ---------- segarkan aplikasi ---------- */
+document.addEventListener('click',e=>{
+  if(!e.target.closest('[data-act="refresh"]'))return;
+  if(photos.length&&!confirm('Segarkan aplikasi? Foto yang sedang dimuat di galeri akan hilang. Unduh atau simpan ke database dulu.'))return;
+  location.reload();
+});
+</script>
+<script>
+/* ---------- mode offline ---------- */
+const offUpd=()=>document.documentElement.classList.toggle('off',!navigator.onLine);
+addEventListener('online',offUpd);addEventListener('offline',offUpd);offUpd();
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+<script>
+/* ---------- login ---------- */
+const LK=GRID_AUTH.k,LH=GRID_AUTH.h;
+async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('grid:'+t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+let fails=0,lockUntil=0;
+function unlock(){document.documentElement.classList.remove('locked');setTimeout(()=>{try{dmap.invalidateSize();map.invalidateSize()}catch(e){}renderDash()},120)}
+$('loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();const er=$('loginErr'),now=Date.now();
+  if(now<lockUntil){er.textContent='Terlalu banyak percobaan. Coba lagi dalam '+Math.ceil((lockUntil-now)/1000)+' detik.';return}
+  if(typeof crypto==='undefined'||!crypto.subtle){er.textContent='Browser tidak mendukung. Buka lewat alamat https.';return}
+  const h=await sha($('loginCode').value.trim());
+  if(h===LH){
+    fails=0;er.textContent='';
+    try{($('loginKeep').checked?localStorage:sessionStorage).setItem(LK,LH)}catch(x){}
+    $('loginCode').value='';unlock();
+  }else{
+    fails++;er.textContent='Kode salah.';$('loginCode').select();
+    if(fails>=3){lockUntil=Date.now()+30000;fails=0;er.textContent='Kode salah 3 kali. Tunggu 30 detik.'}
+  }
+});
+$('loginShow').onclick=()=>{const i=$('loginCode');i.type=i.type==='password'?'text':'password';$('loginShow').textContent=i.type==='password'?'Tampilkan':'Sembunyikan'};
+document.addEventListener('click',e=>{
+  if(!e.target.closest('[data-act="logout"]'))return;
+  if(photos.length&&!confirm('Keluar? Foto yang sedang dimuat di galeri akan hilang.'))return;
+  try{localStorage.removeItem(LK);sessionStorage.removeItem(LK)}catch(x){}
+  location.reload();
+});
 </script>
 </body>
 </html>
