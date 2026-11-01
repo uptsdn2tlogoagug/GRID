@@ -235,6 +235,13 @@ input[type=password]:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix
       <div><label for="date">Tanggal</label><input id="date" type="date"></div>
       <div><label for="time">Jam</label><input id="time" type="time" step="1"></div>
     </div>
+    <div class="btns">
+      <button class="btn" type="button" id="exifOne">Baca dari EXIF foto ini</button>
+      <button class="btn" type="button" id="exifAll">Baca dari EXIF semua foto</button>
+      <button class="btn" type="button" id="applyAll">Terapkan tanggal &amp; jam ini ke semua foto</button>
+    </div>
+    <label class="chk"><input id="exifAuto" type="checkbox" checked> Isi otomatis dari EXIF saat foto ditambahkan</label>
+    <p class="hint">EXIF adalah waktu asli yang dicatat kamera saat foto diambil. Foto tanpa EXIF (misalnya hasil kirim WhatsApp atau tangkapan layar) tidak diubah.</p>
     <div class="row">
       <div><label for="gmt">Zona (GMT)</label>
         <select id="gmt"><option value="+07:00">+07:00 (WIB)</option><option value="+08:00">+08:00 (WITA)</option><option value="+09:00">+09:00 (WIT)</option><option value="+00:00">+00:00</option></select></div>
@@ -859,6 +866,58 @@ async function dlAll(){
 }
 $('dla').onclick=dlAll;
 document.addEventListener('click',e=>{if(e.target.closest('[data-act="dlall"]'))dlAll()});
+</script>
+<script>
+/* ---------- tanggal & jam dari EXIF, terapkan ke semua foto ---------- */
+const EXK='grid-exif-auto';
+const exifOn=()=>{try{return localStorage.getItem(EXK)!=='0'}catch(e){return true}};
+$('exifAuto').checked=exifOn();
+$('exifAuto').addEventListener('change',()=>{try{localStorage.setItem(EXK,$('exifAuto').checked?'1':'0')}catch(e){}});
+async function exifDate(f){
+  try{
+    const v=new DataView(await f.slice(0,262144).arrayBuffer());
+    if(v.getUint16(0)!==0xFFD8)return null;
+    let o=2;
+    while(o<v.byteLength-10){
+      const m=v.getUint16(o);if((m&0xFF00)!==0xFF00)break;
+      const len=v.getUint16(o+2);
+      if(m===0xFFE1&&v.getUint32(o+4)===0x45786966){
+        const t=o+10,le=v.getUint16(t)===0x4949,g16=x=>v.getUint16(t+x,le),g32=x=>v.getUint32(t+x,le);
+        const str=(off,n)=>{let r='';for(let i=0;i<n-1;i++)r+=String.fromCharCode(v.getUint8(t+off+i));return r};
+        const scan=(ifd,tags)=>{const n=g16(ifd),r={};for(let i=0;i<n;i++){const e=ifd+2+i*12,tg=g16(e);if(tags.includes(tg))r[tg]=e}return r};
+        const i0=scan(g32(4),[0x8769,0x0132]);let ds=null;
+        if(i0[0x8769]){const x=scan(g32(i0[0x8769]+8),[0x9003,0x9004]),e=x[0x9003]||x[0x9004];if(e)ds=str(g32(e+8),g32(e+4))}
+        if(!ds&&i0[0x0132])ds=str(g32(i0[0x0132]+8),g32(i0[0x0132]+4));
+        const k=ds&&ds.match(/^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/);
+        return k&&+k[2]>0&&+k[3]>0?{date:k[1]+'-'+k[2]+'-'+k[3],time:k[4]+':'+k[5]+':'+k[6]}:null;
+      }
+      o+=2+len;
+    }
+  }catch(e){}
+  return null;
+}
+async function exifFill(list){
+  let ok=0,no=0;
+  for(const p of list){
+    const x=await exifDate(p.file);
+    if(x){p.d.date=x.date;p.d.time=x.time;ok++}else no++;
+  }
+  if(cur>=0){loadInputs();draw()}
+  renderGal();
+  toast(ok?'Tanggal & jam diisi dari EXIF untuk '+ok+' foto'+(no?'. '+no+' foto tanpa EXIF tidak diubah.':'.'):'Tidak ada data EXIF pada foto ini, tanggal & jam tidak diubah.');
+}
+const _af3=addFiles;
+addFiles=async fs=>{const n0=photos.length;await _af3(fs);if(exifOn()&&photos.length>n0)await exifFill(photos.slice(n0))};
+$('exifOne').onclick=()=>{if(cur>=0)exifFill([photos[cur]]);else toast('Pilih foto dulu.')};
+$('exifAll').onclick=()=>{if(photos.length)exifFill(photos);else toast('Belum ada foto.')};
+$('applyAll').onclick=()=>{
+  if(!photos.length){toast('Belum ada foto.');return}
+  readInputs();const {date,time}=D();
+  if(!date||!time){toast('Isi tanggal dan jam dulu.');return}
+  photos.forEach(p=>{p.d.date=date;p.d.time=time});
+  loadInputs();draw();renderGal();
+  toast('Tanggal & jam diterapkan ke '+photos.length+' foto.');
+};
 </script>
 </body>
 </html>
