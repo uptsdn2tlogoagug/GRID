@@ -997,14 +997,15 @@ async function uniq(h,name){
   for(;;){try{await h.getFileHandle(n);n=m[1]+' ('+(i++)+')'+(m[2]||'')}catch(e){return n}}
 }
 const _sb=saveBlob;
+const TO=(p,ms)=>Promise.race([p,new Promise((_,j)=>setTimeout(()=>j(new Error('waktu habis')),ms))]);
 saveBlob=function(b,n){
   const z=/\.zip$/i.test(n),h=z?(dirs.zip||dirs.foto):dirs.foto;
-  if(!h){_sb(b,n);return}
+  if(!h){_sb(b,n);toast((/Electron/i.test(navigator.userAgent)?'File dikirim ke Downloads (subfolder GPS atau GRID): ':'File diunduh: ')+n);return}
   (async()=>{try{
-    if(!(await perm(h,true)))throw 0;
+    if(!(await TO(perm(h,true),4000)))throw new Error('izin folder ditolak');
     const f=await uniq(h,n),w=await (await h.getFileHandle(f,{create:true})).createWritable();
     await w.write(b);await w.close();toast('Tersimpan di folder "'+h.name+'": '+f);
-  }catch(err){_sb(b,n);toast('Folder tidak bisa diakses, file masuk ke folder unduhan bawaan. Buka Lokasi simpan dan tekan Izinkan.')}})();
+  }catch(err){_sb(b,n);toast('Gagal menyimpan ke folder pilihan ('+(err.message||err.name)+'). File dikirim ke folder unduhan bawaan.')}})();
 };
 (async()=>{for(const k of ['foto','zip'])dirs[k]=await hGet(k);renderSave()})();
 </script>
