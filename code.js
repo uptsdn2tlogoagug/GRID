@@ -6,6 +6,7 @@ const FOLDER_ID = '1BAe5KuFbZhmVpGUogQ4qlNeVkVdCXNzy';
 const KODE = 'polsek123'; // ganti kalau perlu, lalu deploy ulang
 const INDEX = 'index.json';
 const ACCOUNTS = 'accounts.json';
+const BACKUP_PREFIX = 'backup-grid-';
 
 function out_(o) {
   return ContentService.createTextOutput(JSON.stringify(o))
@@ -68,7 +69,7 @@ function doPost(e) {
         return out_({ ok: true, jumlah: idx.length });
       case 'accountList': {
         const users = readAccounts_().map(function (u) {
-          return { username: u.username, createdAt: u.createdAt };
+          return { username: u.username, role: u.role || 'petugas', createdAt: u.createdAt };
         });
         return out_({ ok: true, data: users });
       }
@@ -91,10 +92,63 @@ function doPost(e) {
         users.push({
           username: username,
           passwordHash: hashPassword_(password),
+          role: ['admin','petugas','viewer'].indexOf(String(r.role || 'petugas')) >= 0 ? String(r.role || 'petugas') : 'petugas',
           createdAt: new Date().toISOString()
         });
         writeAccounts_(users);
         return out_({ ok: true, data: { username: username } });
+      }
+      case 'accountSetRole': {
+        if (String(r.adminCode || '') !== KODE) return out_({ ok: false, error: 'Kode admin database salah.' });
+        const username = String(r.username || '').trim().toLowerCase();
+        const role = String(r.role || 'petugas');
+        if (['admin', 'petugas', 'viewer'].indexOf(role) < 0) return out_({ ok: false, error: 'Peran tidak valid.' });
+        const users = readAccounts_();
+        const user = users.find(function (u) { return u.username === username; });
+        if (!user) return out_({ ok: false, error: 'Akun tidak ditemukan.' });
+        user.role = role;
+        user.updatedAt = new Date().toISOString();
+        writeAccounts_(users);
+        return out_({ ok: true, data: { username: username, role: role } });
+      }
+      case 'backupCreate': {
+        if (String(r.adminCode || '') !== KODE) return out_({ ok: false, error: 'Kode admin database salah.' });
+        const now = new Date();
+        const id = Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyyMMdd-HHmmss') + '-' + Utilities.getUuid().slice(0, 8);
+        const accounts = readAccounts_();
+        const snapshot = { id: id, name: 'Backup ' + id, createdAt: now.toISOString(), photos: idx.length, index: idx, accounts: accounts };
+        folder_().createFile(BACKUP_PREFIX + id + '.json', JSON.stringify(snapshot), 'application/json');
+        return out_({ ok: true, data: { id: id, createdAt: snapshot.createdAt, photos: idx.length } });
+      }
+      case 'backupList': {
+        const files = folder_().getFiles();
+        const backups = [];
+        while (files.hasNext()) {
+          const f = files.next();
+          const n = f.getName();
+          if (n.indexOf(BACKUP_PREFIX) !== 0 || !/\.json$/i.test(n)) continue;
+          try {
+            const b = JSON.parse(f.getBlob().getDataAsString());
+            backups.push({ id: b.id, name: b.name || n, createdAt: b.createdAt || f.getDateCreated().toISOString(), photos: b.photos || 0 });
+          } catch (ignore) {}
+        }
+        backups.sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
+        return out_({ ok: true, data: backups });
+      }
+      case 'backupRestore': {
+        if (String(r.adminCode || '') !== KODE) return out_({ ok: false, error: 'Kode admin database salah.' });
+        const id = String(r.id || '');
+        if (!/^[0-9]{8}-[0-9]{6}-[a-f0-9-]{8,}$/i.test(id)) return out_({ ok: false, error: 'ID backup tidak valid.' });
+        const it = folder_().getFilesByName(BACKUP_PREFIX + id + '.json');
+        if (!it.hasNext()) return out_({ ok: false, error: 'File backup tidak ditemukan.' });
+        const snap = JSON.parse(it.next().getBlob().getDataAsString());
+        if (!Array.isArray(snap.index) || !Array.isArray(snap.accounts)) return out_({ ok: false, error: 'Format backup tidak valid.' });
+        // Verifikasi semua file foto dalam backup masih ada sebelum mengganti indeks.
+        const valid = snap.index.every(function (m) { return m && m.id && m.fileId; });
+        if (!valid) return out_({ ok: false, error: 'Indeks backup tidak valid.' });
+        writeIdx_(snap.index);
+        writeAccounts_(snap.accounts);
+        return out_({ ok: true, pesan: 'Backup dipulihkan.', jumlah: snap.index.length });
       }
       case 'accountChange': {
         const username = String(r.username || '').trim().toLowerCase();
