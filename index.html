@@ -92,7 +92,7 @@ body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,s
 .nv:hover{background:rgba(255,255,255,.08)}
 .nv.on{background:var(--ac);color:var(--act);font-weight:600}
 .nv:focus-visible,.btn:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
-.sidefoot{margin-top:auto;font-size:.76rem;color:#7fa090;padding:0 6px;line-height:1.5}
+.sidefoot{margin-top:auto;font-size:.76rem;color:#7fa090;padding:0 6px;line-height:1.5}.developer-credit{display:block;margin-top:10px;padding-top:9px;border-top:1px solid rgba(207,226,217,.18);color:#cfe2d9;font-size:.78rem}.developer-credit strong{color:#f0a500;font-weight:700;letter-spacing:.02em}
 .content{padding:28px 32px 48px;min-width:0}
 .view{max-width:1240px;margin:auto}
 .view[hidden]{display:none}
@@ -195,6 +195,7 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
   <label class="chk"><input id="loginKeep" type="checkbox" checked> Ingat di perangkat ini</label>
   <button class="btn pri" type="submit">Masuk</button>
   <p id="loginErr" role="alert"></p>
+  <p style="text-align:center;font-size:.8rem;margin:14px 0 0;color:var(--mut)">Pengembang <strong style="color:var(--ac)">@masluki.id</strong></p>
 </form>
 </section>
 <div class="app">
@@ -203,7 +204,7 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
   <nav><button class="nv" type="button" data-v="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="9" rx="2"/><rect x="13.5" y="3" width="7.5" height="5" rx="2"/><rect x="13.5" y="11" width="7.5" height="10" rx="2"/><rect x="3" y="15" width="7.5" height="6" rx="2"/></svg><span>Dasbor</span></button><button class="nv" type="button" data-v="gen"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg><span>Generator</span></button><button class="nv" type="button" data-v="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><span>Galeri</span></button><button class="nv" type="button" data-v="db"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span>Database</span></button><button class="nv" type="button" data-v="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Akun / Profil</span></button></nav>
   <button class="nv" type="button" data-act="refresh" title="Segarkan (F5)"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg><span>Segarkan</span></button>
   <button class="nv" type="button" data-act="logout"><svg viewBox="0 0 24 24"><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/></svg><span>Keluar</span></button>
-  <div class="sidefoot"><label class="chk" style="color:#cfe2d9;margin:0 0 8px"><input id="lightMode" type="checkbox"> Mode ringan komputer</label>Foto lokal perlu disimpan ke Database agar tersedia di browser dan PC lain.</div>
+  <div class="sidefoot"><label class="chk" style="color:#cfe2d9;margin:0 0 8px"><input id="lightMode" type="checkbox"> Mode ringan komputer</label>Foto lokal perlu disimpan ke Database agar tersedia di browser dan PC lain.<span class="developer-credit">Pengembang <strong>@masluki.id</strong></span></div>
 </aside>
 <div class="content">
 <div id="offBar" role="status">Mode offline: peta hanya tampil di area yang pernah dibuka. Database, pencarian tempat, dan nama alamat otomatis butuh internet.</div>
