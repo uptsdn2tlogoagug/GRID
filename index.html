@@ -297,7 +297,8 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
     <div class="row">
       <div><label for="rentang">Rentang acak ± (menit)</label><input id="rentang" type="number" min="0" max="180" step="5" value="60"></div>
     </div>
-    <p class="hint">Jam acak berada di sekitar pusat jam siang atau malam. Siang atau malam ditentukan dari jam asli foto (EXIF), atau dari kecerahan gambar jika EXIF tidak ada. Jika jam acak dimatikan, foto memakai jam asli (EXIF) atau pusat jam.</p>
+    <p class="hint">Jam acak berada di sekitar pusat jam siang atau malam. Foto ditentukan siang/malam dari jam asli (EXIF), atau dari kecerahan gambar jika EXIF tidak ada. Foto malam yang terang (misalnya mode malam kamera) bisa terbaca siang: ubah dengan tombol di bawah.</p>
+    <div class="btns"><button class="btn" id="togel" type="button" disabled>🌙 Ubah ke malam</button></div>
     <div class="btns"><button class="btn" id="acakUlang" type="button">🎲 Acak ulang jam semua foto</button></div>
     <div class="btns"><button class="btn" id="resort" type="button">↻ Urutkan ulang siang &amp; malam</button></div>
   </div>
@@ -614,6 +615,14 @@ async function addFiles(fs){
     await select(photos.indexOf(baru),true);
   }
 }
+function togelMalam(){
+  if(cur<0)return;
+  const p=photos[cur],keMalam=grpOf(p)!==1;
+  p.d.time=acakOn()?jamAcak(keMalam):$(keMalam?'jamMalam':'jamSiang').value;
+  sortGroup(p);
+  select(photos.indexOf(p),true);
+  msg('Foto ini sekarang dianggap '+(keMalam?'malam':'siang')+'.');
+}
 function acakSemua(){
   if(!photos.length){msg('Belum ada foto.');return}
   photos.forEach(p=>{p.d.time=jamAcak(grpOf(p)===1)});
@@ -642,6 +651,8 @@ function listThumbs(){
   const a=document.createElement('label');a.className='add';a.htmlFor='file';a.textContent='+';a.title='Tambah foto';t.appendChild(a);
   const malam=photos.filter(p=>grpOf(p)).length;
   $('grpInfo').textContent=photos.length?'☀️ Siang: '+(photos.length-malam)+' foto  ·  🌙 Malam: '+malam+' foto':'';
+  const tg=$('togel');
+  tg.disabled=cur<0;tg.textContent=cur>=0&&grpOf(photos[cur])?'☀️ Ubah ke siang':'🌙 Ubah ke malam';
   const has=photos.length>0;
   $('dl').disabled=$('dl2').disabled=$('dlp').disabled=$('del').disabled=!has;$('dlz').disabled=$('dla').disabled=photos.length<2;
   $('stage').classList.toggle('empty',!has);
@@ -696,6 +707,7 @@ function setNow(){
 $('now').onclick=setNow;
 $('resort').onclick=()=>{readInputs();sortGroup();msg('Foto diurutkan: siang dulu, lalu malam.')};
 $('acakUlang').onclick=acakSemua;
+$('togel').onclick=togelMalam;
 $('time').addEventListener('change',()=>{readInputs();listThumbs()});
 (function(){
   const off=-new Date().getTimezoneOffset(),z=(off>=0?'+':'-')+p2(Math.floor(Math.abs(off)/60))+':'+p2(Math.abs(off)%60);
