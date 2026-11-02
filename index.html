@@ -53,6 +53,7 @@ canvas#cv{max-width:100%;max-height:68vh;width:auto;height:auto;display:block}
 #thumbs img{width:100%;height:100%;object-fit:cover;display:block}
 #thumbs .add{display:grid;place-items:center;border:2px dashed var(--bd);color:var(--mut);font-size:22px}
 #thumbs .num{position:absolute;left:3px;bottom:3px;background:rgba(0,0,0,.6);color:#fff;font-size:.65rem;border-radius:6px;padding:0 5px}
+#thumbs .grp{position:absolute;right:3px;top:3px;font-size:.6rem;line-height:1.3;background:rgba(0,0,0,.55);border-radius:6px;padding:0 3px}
 #editing{margin-top:4px}
 #map{height:290px;border-radius:14px;border:1px solid var(--bd);z-index:0;margin-top:10px}
 .search{position:relative;margin-top:10px}
@@ -230,6 +231,7 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
   <div class="card">
     <div class="stage empty" id="stage"><canvas id="cv" width="1000" height="640"></canvas></div>
     <div id="thumbs"></div>
+    <div id="grpInfo" class="hint"></div>
     <input id="file" type="file" accept="image/*" multiple hidden>
     <div id="editing" class="hint">Belum ada foto. Klik area pratinjau atau tombol + untuk memilih (bisa banyak).</div>
     <div class="btns">
@@ -286,6 +288,13 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
     </div>
     <label class="chk"><input id="sec" type="checkbox"> Tampilkan detik</label>
     <div class="btns"><button class="btn" id="now" type="button">Set ke waktu sekarang</button></div>
+    <label class="chk"><input id="autoGrp" type="checkbox" checked> Sortir otomatis siang &amp; malam saat foto diunggah</label>
+    <div class="row">
+      <div><label for="jamSiang">Jam default siang</label><input id="jamSiang" type="time" step="1" value="10:00:00"></div>
+      <div><label for="jamMalam">Jam default malam</label><input id="jamMalam" type="time" step="1" value="19:00:00"></div>
+    </div>
+    <p class="hint">Jam diambil dari data waktu asli foto (EXIF) bila ada. Jika tidak ada, foto yang gelap dianggap malam dan memakai jam default di atas.</p>
+    <div class="btns"><button class="btn" id="resort" type="button">↻ Urutkan ulang siang &amp; malam</button></div>
   </div>
 
   <details class="card">
@@ -517,16 +526,71 @@ function mkThumb(c){
   t.getContext('2d').drawImage(c,(c.width-s)/2,(c.height-s)/2,s,s,0,0,240,240);
   return t.toDataURL('image/jpeg',.75);
 }
+/* ---------- sortir otomatis siang / malam ---------- */
+const AMBANG_MALAM=60; // rata-rata kecerahan 0-255; di bawah ini dianggap malam (dipakai jika foto tanpa data waktu)
+function grpOn(){return $('autoGrp').checked}
+function jamOf(t){const p=(t||'').split(':').map(Number);return {h:p[0]||0,m:p[1]||0,s:p[2]||0}}
+function isMalam(t){if(!t)return false;const h=jamOf(t).h;return h>=18||h<5}
+function grpOf(p){return isMalam(p.d.time)?1:0}
+function tsOf(p){const [y,mo,dy]=(p.d.date||'1970-01-01').split('-').map(Number);const j=jamOf(p.d.time);return new Date(y,mo-1,dy,j.h,j.m,j.s).getTime()}
+function sortGroup(fokus){
+  const pilih=fokus||photos[cur]||null;
+  photos.sort((a,b)=>grpOf(a)-grpOf(b)||tsOf(a)-tsOf(b));
+  cur=pilih?photos.indexOf(pilih):-1;
+  listThumbs();
+}
+function lumaOf(c){
+  const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let s=0,n=0;
+  for(let i=0;i<d.length;i+=16){s+=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];n++}
+  return n?s/n:255;
+}
+function parseExif(v,t){
+  const le=v.getUint16(t)===0x4949,u16=p=>v.getUint16(p,le),u32=p=>v.getUint32(p,le);
+  const ifd=off=>{const m={},n=u16(off);for(let i=0;i<n;i++){const e=off+2+i*12;m[u16(e)]=e}return m};
+  const str=e=>{const cnt=u32(e+4),o=cnt>4?t+u32(e+8):e+8;let s='';for(let i=0;i<cnt-1;i++)s+=String.fromCharCode(v.getUint8(o+i));return s};
+  const i0=ifd(t+u32(t+4));
+  let e=i0[0x8769]!==undefined?ifd(t+u32(i0[0x8769]+8))[0x9003]:undefined;
+  if(e===undefined)e=i0[0x0132];
+  if(e===undefined)return null;
+  const m=/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(str(e));
+  if(!m||m[1]==='0000')return null;
+  return {date:m[1]+'-'+m[2]+'-'+m[3],time:m[4]+':'+m[5]+':'+m[6]};
+}
+async function exifTime(f){
+  try{
+    const v=new DataView(await f.slice(0,262144).arrayBuffer());
+    if(v.getUint16(0)!==0xFFD8)return null;
+    let o=2;
+    while(o+4<v.byteLength&&v.getUint8(o)===0xFF){
+      const mk=v.getUint8(o+1);
+      if(mk===0xDA)break;
+      if(mk===0xE1&&v.getUint32(o+4)===0x45786966)return parseExif(v,o+10);
+      o+=2+v.getUint16(o+2);
+    }
+  }catch(e){}
+  return null;
+}
 async function addFiles(fs){
   fs=[...fs].filter(f=>f.type.startsWith('image/'));if(!fs.length)return;
   readInputs();const base=pick(D()),first=photos.length;
   msg('Memuat foto…');
   for(const f of fs){
     const c=await decode(f,360);
-    if(c)photos.push({name:f.name.replace(/\.[^.]+$/,'')||'foto',file:f,th:mkThumb(c),d:Object.assign({},base)});
+    if(!c)continue;
+    const d=Object.assign({},base);
+    if(grpOn()){
+      const ex=await exifTime(f);
+      if(ex){d.date=ex.date;d.time=ex.time}
+      else d.time=lumaOf(c)<AMBANG_MALAM?$('jamMalam').value:$('jamSiang').value;
+    }
+    photos.push({name:f.name.replace(/\.[^.]+$/,'')||'foto',file:f,th:mkThumb(c),d});
   }
   msg('');
-  if(photos.length>first)await select(first,true);
+  if(photos.length>first){
+    const baru=photos[first];
+    if(grpOn())sortGroup(baru);
+    await select(photos.indexOf(baru),true);
+  }
 }
 async function select(i,skipRead){
   if(!skipRead)readInputs();
@@ -542,9 +606,13 @@ function listThumbs(){
     const b=document.createElement('button');b.type='button';b.className=i===cur?'on':'';b.title=(i+1)+'. '+p.name;
     const im=document.createElement('img');im.src=p.th;im.alt=p.name;
     const n=document.createElement('span');n.className='num';n.textContent=i+1;
-    b.append(im,n);b.onclick=()=>select(i);t.appendChild(b);
+    const g=document.createElement('span');g.className='grp';g.textContent=grpOf(p)?'🌙':'☀️';
+    if(i>0&&grpOf(p)!==grpOf(photos[i-1]))b.style.marginLeft='18px';
+    b.append(im,n,g);b.onclick=()=>select(i);t.appendChild(b);
   });
   const a=document.createElement('label');a.className='add';a.htmlFor='file';a.textContent='+';a.title='Tambah foto';t.appendChild(a);
+  const malam=photos.filter(p=>grpOf(p)).length;
+  $('grpInfo').textContent=photos.length?'☀️ Siang: '+(photos.length-malam)+' foto  ·  🌙 Malam: '+malam+' foto':'';
   const has=photos.length>0;
   $('dl').disabled=$('dl2').disabled=$('dlp').disabled=$('del').disabled=!has;$('dlz').disabled=$('dla').disabled=photos.length<2;
   $('stage').classList.toggle('empty',!has);
@@ -597,6 +665,8 @@ function setNow(){
   readInputs();sched();
 }
 $('now').onclick=setNow;
+$('resort').onclick=()=>{readInputs();sortGroup();msg('Foto diurutkan: siang dulu, lalu malam.')};
+$('time').addEventListener('change',()=>{readInputs();listThumbs()});
 (function(){
   const off=-new Date().getTimezoneOffset(),z=(off>=0?'+':'-')+p2(Math.floor(Math.abs(off)/60))+':'+p2(Math.abs(off)%60);
   if([...$('gmt').options].some(o=>o.value===z))$('gmt').value=z;
