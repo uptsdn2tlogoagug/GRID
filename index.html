@@ -75,6 +75,8 @@ details[open].card>summary::after{transform:rotate(180deg)}
 @media (max-width:900px){.dock{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0));background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--bd)}.dock .btn{flex:1}}
 </style>
 <style>
+html.light-mode *,html.light-mode *::before,html.light-mode *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important}
+html.light-mode img{content-visibility:auto}
 :root{--bg:#e8edeb;--card:#fbfcfb;--tx:#10201a;--mut:#58695f;--bd:#d3dcd8;--fld:#f0f4f2;--ac:#d98e00;--ac2:#f0b93a;--act:#1f1400;--sb:#0f2a22;--sh:0 1px 2px rgba(16,32,26,.05),0 8px 24px rgba(16,32,26,.06)}
 @media (prefers-color-scheme:dark){:root{--bg:#09130f;--card:#10201a;--tx:#e6f0ea;--mut:#8ea69a;--bd:#21372f;--fld:#0b1813;--ac:#f2b134;--ac2:#ffd166;--act:#241700;--sb:#0b1d17}}
 body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14.5px}
@@ -201,7 +203,7 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
   <nav><button class="nv" type="button" data-v="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="9" rx="2"/><rect x="13.5" y="3" width="7.5" height="5" rx="2"/><rect x="13.5" y="11" width="7.5" height="10" rx="2"/><rect x="3" y="15" width="7.5" height="6" rx="2"/></svg><span>Dasbor</span></button><button class="nv" type="button" data-v="gen"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg><span>Generator</span></button><button class="nv" type="button" data-v="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><span>Galeri</span></button><button class="nv" type="button" data-v="db"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span>Database</span></button><button class="nv" type="button" data-v="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Akun / Profil</span></button></nav>
   <button class="nv" type="button" data-act="refresh" title="Segarkan (F5)"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg><span>Segarkan</span></button>
   <button class="nv" type="button" data-act="logout"><svg viewBox="0 0 24 24"><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/></svg><span>Keluar</span></button>
-  <p class="sidefoot">Foto lokal perlu disimpan ke Database agar tersedia di browser dan PC lain.</p>
+  <div class="sidefoot"><label class="chk" style="color:#cfe2d9;margin:0 0 8px"><input id="lightMode" type="checkbox"> Mode ringan komputer</label>Foto lokal perlu disimpan ke Database agar tersedia di browser dan PC lain.</div>
 </aside>
 <div class="content">
 <div id="offBar" role="status">Mode offline: peta hanya tampil di area yang pernah dibuka. Database, pencarian tempat, dan nama alamat otomatis butuh internet.</div>
@@ -333,6 +335,7 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
 </section>
 <section id="v-gal" class="view" hidden>
   <div class="vh"><div><h1>Galeri</h1><p id="galN"></p></div><div class="btns" style="margin:0"><button class="btn" type="button" data-act="dlall">Unduh semua file</button><button class="btn" type="button" data-act="dbsaveall">Simpan semua ke database</button><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
+  <div class="card" style="margin-bottom:14px"><div class="row"><div><label for="galSearch">Cari foto</label><input id="galSearch" type="text" placeholder="Nama file, kegiatan, koordinat…"></div><div><label for="galDate">Filter tanggal</label><input id="galDate" type="date"></div></div><div class="row"><div><label for="galStatus">Status data</label><select id="galStatus"><option value="all">Semua foto</option><option value="gps">Sudah ada GPS</option><option value="nogps">Belum ada GPS</option><option value="complete">Data lengkap</option><option value="incomplete">Perlu dilengkapi</option><option value="saved">Sudah tersimpan di database</option><option value="unsaved">Belum tersimpan di database</option></select></div><div style="display:flex;align-items:end"><button class="btn" type="button" id="galReset">Reset filter</button></div></div></div>
   <div class="gal" id="gal"></div>
 </section>
 <section id="v-db" class="view" hidden>
@@ -347,16 +350,18 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
       <p class="hint">Link dan kode koneksi disimpan per browser. Masukkan link dan kode yang sama pada perangkat lain.</p></div>
     <div class="card s8"><div class="ct"><h2>Isi database</h2><small id="dbN"></small></div><div id="dbList"></div>
       <div class="btns"><button class="btn" type="button" data-act="dbrefresh">Muat ulang daftar</button></div></div>
+    <div class="card s12"><div class="ct"><h2>Backup &amp; pemulihan</h2><small>Cadangan metadata dan daftar akun</small></div><p class="hint">Foto asli tetap berada di Google Drive. Backup ini menyimpan indeks foto dan daftar akun, bukan menggandakan file JPG.</p><div class="btns"><button class="btn pri" type="button" data-act="backupcreate">Buat backup sekarang</button><button class="btn" type="button" data-act="backuplist">Lihat backup</button></div><div id="backupList" class="hint"></div><p id="backupStat" class="hint"></p></div>
   </div>
 </section>
 <section id="v-profile" class="view" hidden>
-  <div class="vh"><div><h1>Akun / Profil</h1><p>Kelola akun yang tersimpan di database Google Drive bersama.</p></div></div>
+  <div class="vh"><div><h1>Akun / Profil</h1><p>Kelola daftar akun dan peran yang tersimpan di database Google Drive bersama. Catatan: login aplikasi yang sudah ada masih menggunakan kode akses utama.</p></div></div>
   <div class="dgrid">
     <div class="card s6">
       <div class="ct"><h2>Buat akun baru</h2></div>
       <label for="newUser">Nama pengguna</label><input id="newUser" type="text" autocomplete="off" placeholder="petugas01">
       <label for="newPass">Kata sandi</label><input id="newPass" type="password" autocomplete="new-password">
       <label for="newPass2">Ulangi kata sandi</label><input id="newPass2" type="password" autocomplete="new-password">
+      <label for="newRole">Hak akses awal</label><select id="newRole"><option value="petugas">Petugas — olah dan simpan foto</option><option value="admin">Admin — kelola akun dan backup</option><option value="viewer">Viewer — lihat dan unduh saja</option></select>
       <label for="accountAdminCode">Kode admin database</label><input id="accountAdminCode" type="password" autocomplete="off">
       <div class="btns"><button class="btn pri" type="button" data-act="acctcreate">Buat akun</button></div>
       <p class="hint">Pembuatan akun memerlukan kode admin database.</p>
@@ -932,18 +937,40 @@ function renderDash(){
   $('recent').innerHTML=h.length?h.slice(-6).reverse().map(e=>'<div class="li"><div><b>'+esc(e.ti||e.n)+'</b><small>'+(isNaN(e.la)?'-':e.la.toFixed(5)+', '+e.lo.toFixed(5))+'</small></div><time>'+ago(e.t)+'</time></div>').join('')
     :'<p class="empty-t">Belum ada unduhan. Hasil yang Anda unduh akan tercatat di sini.</p>';
 }
+function galFiltered(){
+  const q=(($('galSearch')&&$('galSearch').value)||'').trim().toLowerCase();
+  const date=(($('galDate')&&$('galDate').value)||'');
+  const status=(($('galStatus')&&$('galStatus').value)||'all');
+  return photos.map((p,i)=>({p,i})).filter(({p})=>{
+    const d=p.d||{},hay=[p.name,d.title,d.caption,d.place,d.address,d.date,d.time,d.lat,d.lng].join(' ').toLowerCase();
+    if(q&&!hay.includes(q))return false;
+    if(date&&String(d.date||'')!==date)return false;
+    if(status==='gps'&&!okLL(d))return false;
+    if(status==='nogps'&&okLL(d))return false;
+    if(status==='complete'&&problems(p).length)return false;
+    if(status==='incomplete'&&!problems(p).length)return false;
+    if(status==='saved'&&!p.dbId)return false;
+    if(status==='unsaved'&&p.dbId)return false;
+    return true;
+  });
+}
 function renderGal(){
-  const g=$('gal');
-  $('galN').textContent=photos.length?photos.length+' foto di sesi ini':'Foto yang Anda tambahkan tampil di sini.';
-  g.innerHTML=photos.length?photos.map((p,i)=>{
+  const g=$('gal');if(!g)return;
+  const items=galFiltered();
+  $('galN').textContent=photos.length?(items.length+' dari '+photos.length+' foto di sesi ini'):'Foto yang Anda tambahkan tampil di sini.';
+  g.innerHTML=items.length?items.map(({p,i})=>{
     const d=p.d,pr=problems(p);
-    return '<div class="card gi"><img src="'+p.th+'" alt="'+esc(p.name)+'"><div class="gb"><b>'+(i+1)+'. '+esc(d.title||p.name)+'</b>'
+    return '<div class="card gi"><img loading="lazy" decoding="async" src="'+p.th+'" alt="'+esc(p.name)+'"><div class="gb"><b>'+(i+1)+'. '+esc(d.title||p.name)+'</b>'
       +'<small>'+(d.date?esc(d.date)+' '+esc(d.time):'Tanggal belum diisi')+'</small>'
       +'<small>'+(okLL(d)?(+d.lat).toFixed(5)+', '+(+d.lng).toFixed(5):'Koordinat belum diisi')+'</small>'
+      +(p.dbId?'<small>✓ Tersimpan di database</small>':'<small>Belum tersimpan di database</small>')
       +(pr.length?'<small class="warn">Perlu: '+esc(pr.join(', '))+'</small>':'')
       +'<div class="btns"><button class="btn" type="button" data-act="edit" data-i="'+i+'">Edit</button><button class="btn pri" type="button" data-act="dl" data-i="'+i+'">Unduh</button><button class="btn" type="button" data-act="dbsave" data-i="'+i+'">Simpan ke DB</button></div></div></div>';
-  }).join(''):'<div class="card" style="grid-column:1/-1"><p class="empty-t">Belum ada foto. Tambahkan foto untuk mulai membuat stempel GPS.</p></div>';
+  }).join(''):'<div class="card" style="grid-column:1/-1"><p class="empty-t">'+(photos.length?'Tidak ada foto yang cocok dengan filter.':'Belum ada foto. Tambahkan foto untuk mulai membuat stempel GPS.')+'</p></div>';
 }
+['galSearch','galDate','galStatus'].forEach(id=>{const e=$(id);if(e)e.addEventListener(id==='galSearch'?'input':'change',renderGal)});
+$('galReset')?.addEventListener('click',()=>{$('galSearch').value='';$('galDate').value='';$('galStatus').value='all';renderGal()});
+
 const h0=(location.hash||'').slice(1);
 setView(VIEWS.includes(h0)?h0:'dash');
 renderDash();
@@ -995,7 +1022,7 @@ async function renderAccounts() {
     const users = j.data || [];
     $('acctN').textContent = users.length + ' akun';
     list.innerHTML = users.length ? users.map(function(u) {
-      return '<div class="li"><div><b>'+esc(u.username)+'</b><small>Dibuat: '+esc(u.createdAt || '-')+'</small></div></div>';
+      return '<div class="li"><div><b>'+esc(u.username)+'</b><small>Peran: '+esc(u.role || 'petugas')+' · Dibuat: '+esc(u.createdAt || '-')+'</small></div><select data-role-user="'+esc(u.username)+'" aria-label="Ubah peran '+esc(u.username)+'"><option value="petugas" '+((u.role||'petugas')==='petugas'?'selected':'')+'>Petugas</option><option value="admin" '+(u.role==='admin'?'selected':'')+'>Admin</option><option value="viewer" '+(u.role==='viewer'?'selected':'')+'>Viewer</option></select><button class="btn" type="button" data-act="acctrole" data-user="'+esc(u.username)+'">Simpan peran</button></div>';
     }).join('') : '<p class="empty-t">Belum ada akun.</p>';
     $('acctStat').textContent = 'Daftar akun berhasil dimuat.';
   } catch (e) {
@@ -1007,7 +1034,7 @@ document.addEventListener('click', async function(event) {
   const button = event.target.closest('[data-act]');
   if (!button) return;
   const action = button.dataset.act;
-  if (!['acctcreate','acctchange','acctrefresh'].includes(action)) return;
+  if (!['acctcreate','acctchange','acctrefresh','acctrole'].includes(action)) return;
   button.disabled = true;
   try {
     if (action === 'acctcreate') {
@@ -1016,7 +1043,7 @@ document.addEventListener('click', async function(event) {
       if (!username || !password || !adminCode) throw new Error('Semua kolom pembuatan akun wajib diisi.');
       if (password.length < 6) throw new Error('Kata sandi minimal 6 karakter.');
       if (password !== repeat) throw new Error('Ulangi kata sandi belum sama.');
-      const j = await accountCall('accountCreate',{username:username,password:password,adminCode:adminCode});
+      const j = await accountCall('accountCreate',{username:username,password:password,role:$('newRole').value,adminCode:adminCode});
       $('newUser').value=''; $('newPass').value=''; $('newPass2').value=''; $('accountAdminCode').value='';
       toast('Akun '+j.data.username+' berhasil dibuat.');
       await renderAccounts();
@@ -1030,6 +1057,13 @@ document.addEventListener('click', async function(event) {
       $('oldPass').value=''; $('changePass').value=''; $('changePass2').value='';
       toast('Kata sandi berhasil diubah.');
       await renderAccounts();
+    } else if(action==='acctrole') {
+      const roleSelect=document.querySelector('[data-role-user="'+CSS.escape(button.dataset.user)+'"]');
+      if(!roleSelect)throw new Error('Pilihan peran tidak ditemukan.');
+      const adminCode=prompt('Masukkan kode admin database untuk mengubah hak akses:');
+      if(!adminCode)throw new Error('Perubahan peran dibatalkan.');
+      await accountCall('accountSetRole',{username:button.dataset.user,role:roleSelect.value,adminCode:adminCode});
+      toast('Peran akun berhasil diperbarui.');await renderAccounts();
     } else {
       await renderAccounts();
     }
@@ -1144,6 +1178,15 @@ document.addEventListener('click',e=>{
 });
 </script>
 <script>
+/* ---------- mode ringan, backup & pemulihan ---------- */
+const LIGHTK='grid-light-mode-v1';
+const lightBox=$('lightMode');
+if(lightBox){try{lightBox.checked=localStorage.getItem(LIGHTK)==='1'}catch(e){}
+document.documentElement.classList.toggle('light-mode',!!lightBox.checked);
+lightBox.addEventListener('change',()=>{document.documentElement.classList.toggle('light-mode',lightBox.checked);try{localStorage.setItem(LIGHTK,lightBox.checked?'1':'0')}catch(e){};toast(lightBox.checked?'Mode ringan aktif.':'Mode normal aktif.')});}
+async function backupAction(action,extra){return dbCall(action,extra||{})}
+async function refreshBackups(){const box=$('backupList');if(!box)return;box.textContent='Memuat daftar backup…';try{const r=await backupAction('backupList');const a=r.data||[];box.innerHTML=a.length?a.map(b=>'<div class="li"><div><b>'+esc(b.name||b.id)+'</b><small>'+esc(b.createdAt||'')+' · '+esc(String(b.photos||0))+' foto</small></div><button class="btn" type="button" data-act="backuprestore" data-id="'+esc(b.id)+'">Pulihkan</button></div>').join(''):'Belum ada backup.'}catch(e){box.textContent=e.message}}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;if(!['backupcreate','backuplist','backuprestore'].includes(a))return;b.disabled=true;try{if(a==='backupcreate'){const adminCode=prompt('Masukkan kode admin database untuk membuat backup:');if(!adminCode)throw new Error('Backup dibatalkan.');await backupAction('backupCreate',{adminCode});$('backupStat').textContent='Backup berhasil dibuat di Google Drive.';toast('Backup berhasil dibuat.');await refreshBackups()}else if(a==='backuplist'){await refreshBackups()}else{if(!confirm('Pulihkan indeks foto dan daftar akun dari backup ini? Data indeks/akun saat ini akan diganti. Foto JPG yang sudah ada di Drive tidak dihapus.'))return;const adminCode=prompt('Masukkan kode admin database untuk memulihkan backup:');if(!adminCode)throw new Error('Pemulihan dibatalkan.');await backupAction('backupRestore',{id:b.dataset.id,adminCode});$('backupStat').textContent='Pemulihan selesai. Muat ulang database untuk melihat data.';toast('Pemulihan selesai.');await renderDb();await renderAccounts()}}catch(err){$('backupStat').textContent=err.message;toast(err.message)}finally{b.disabled=false}});
 /* ---------- mode offline ---------- */
 const offUpd=()=>document.documentElement.classList.toggle('off',!navigator.onLine);
 addEventListener('online',offUpd);addEventListener('offline',offUpd);offUpd();
