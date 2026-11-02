@@ -5,6 +5,7 @@
 const FOLDER_ID = '1BAe5KuFbZhmVpGUogQ4qlNeVkVdCXNzy';
 const KODE = 'polsek123'; // ganti kalau perlu, lalu deploy ulang
 const INDEX = 'index.json';
+const ACCOUNTS = 'accounts.json';
 
 function out_(o) {
   return ContentService.createTextOutput(JSON.stringify(o))
@@ -22,6 +23,29 @@ function writeIdx_(arr) {
   const it = folder_().getFilesByName(INDEX), s = JSON.stringify(arr);
   if (it.hasNext()) it.next().setContent(s);
   else folder_().createFile(INDEX, s, 'application/json');
+}
+
+function readAccounts_() {
+  const it = folder_().getFilesByName(ACCOUNTS);
+  if (!it.hasNext()) return [];
+  try { return JSON.parse(it.next().getBlob().getDataAsString()) || []; }
+  catch (e) { throw new Error('File database akun tidak dapat dibaca.'); }
+}
+function writeAccounts_(arr) {
+  const it = folder_().getFilesByName(ACCOUNTS);
+  const json = JSON.stringify(arr);
+  if (it.hasNext()) it.next().setContent(json);
+  else folder_().createFile(ACCOUNTS, json, 'application/json');
+}
+function hashPassword_(password) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(password),
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(function (b) {
+    return ('0' + ((b + 256) % 256).toString(16)).slice(-2);
+  }).join('');
 }
 
 // Jalankan fungsi ini sekali dari editor untuk memberi izin akses Drive.
@@ -42,6 +66,53 @@ function doPost(e) {
     switch (r.action) {
       case 'ping':
         return out_({ ok: true, jumlah: idx.length });
+      case 'accountList': {
+        const users = readAccounts_().map(function (u) {
+          return { username: u.username, createdAt: u.createdAt };
+        });
+        return out_({ ok: true, data: users });
+      }
+      case 'accountCreate': {
+        if (String(r.adminCode || '') !== KODE) {
+          return out_({ ok: false, error: 'Kode admin database salah.' });
+        }
+        const username = String(r.username || '').trim().toLowerCase();
+        const password = String(r.password || '');
+        if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
+          return out_({ ok: false, error: 'Nama pengguna 3–32 karakter: huruf kecil, angka, titik, garis bawah, atau minus.' });
+        }
+        if (password.length < 6) {
+          return out_({ ok: false, error: 'Kata sandi minimal 6 karakter.' });
+        }
+        const users = readAccounts_();
+        if (users.some(function (u) { return u.username === username; })) {
+          return out_({ ok: false, error: 'Nama pengguna sudah digunakan.' });
+        }
+        users.push({
+          username: username,
+          passwordHash: hashPassword_(password),
+          createdAt: new Date().toISOString()
+        });
+        writeAccounts_(users);
+        return out_({ ok: true, data: { username: username } });
+      }
+      case 'accountChange': {
+        const username = String(r.username || '').trim().toLowerCase();
+        const oldPassword = String(r.oldPassword || '');
+        const newPassword = String(r.newPassword || '');
+        if (newPassword.length < 6) {
+          return out_({ ok: false, error: 'Kata sandi baru minimal 6 karakter.' });
+        }
+        const users = readAccounts_();
+        const user = users.find(function (u) { return u.username === username; });
+        if (!user || user.passwordHash !== hashPassword_(oldPassword)) {
+          return out_({ ok: false, error: 'Nama pengguna atau kata sandi lama salah.' });
+        }
+        user.passwordHash = hashPassword_(newPassword);
+        user.updatedAt = new Date().toISOString();
+        writeAccounts_(users);
+        return out_({ ok: true, pesan: 'Kata sandi berhasil diubah.' });
+      }
       case 'list':
         return out_({ ok: true, data: idx });
       case 'save': {
