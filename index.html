@@ -289,11 +289,16 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
     <label class="chk"><input id="sec" type="checkbox"> Tampilkan detik</label>
     <div class="btns"><button class="btn" id="now" type="button">Set ke waktu sekarang</button></div>
     <label class="chk"><input id="autoGrp" type="checkbox" checked> Sortir otomatis siang &amp; malam saat foto diunggah</label>
+    <label class="chk"><input id="autoAcak" type="checkbox" checked> Jam otomatis acak untuk setiap foto</label>
     <div class="row">
-      <div><label for="jamSiang">Jam default siang</label><input id="jamSiang" type="time" step="1" value="10:00:00"></div>
-      <div><label for="jamMalam">Jam default malam</label><input id="jamMalam" type="time" step="1" value="19:00:00"></div>
+      <div><label for="jamSiang">Pusat jam siang</label><input id="jamSiang" type="time" step="1" value="10:00:00"></div>
+      <div><label for="jamMalam">Pusat jam malam</label><input id="jamMalam" type="time" step="1" value="21:00:00"></div>
     </div>
-    <p class="hint">Jam diambil dari data waktu asli foto (EXIF) bila ada. Jika tidak ada, foto yang gelap dianggap malam dan memakai jam default di atas.</p>
+    <div class="row">
+      <div><label for="rentang">Rentang acak ± (menit)</label><input id="rentang" type="number" min="0" max="180" step="5" value="60"></div>
+    </div>
+    <p class="hint">Jam acak berada di sekitar pusat jam siang atau malam. Siang atau malam ditentukan dari jam asli foto (EXIF), atau dari kecerahan gambar jika EXIF tidak ada. Jika jam acak dimatikan, foto memakai jam asli (EXIF) atau pusat jam.</p>
+    <div class="btns"><button class="btn" id="acakUlang" type="button">🎲 Acak ulang jam semua foto</button></div>
     <div class="btns"><button class="btn" id="resort" type="button">↻ Urutkan ulang siang &amp; malam</button></div>
   </div>
 
@@ -570,6 +575,21 @@ async function exifTime(f){
   }catch(e){}
   return null;
 }
+/* ---------- jam acak ---------- */
+function acakOn(){return $('autoAcak').checked}
+function detikDari(t){const j=jamOf(t);return j.h*3600+j.m*60+j.s}
+function jamAcak(malam){
+  // jendela siang 05:00-17:59; jendela malam 18:00-04:59 (lewat tengah malam, dihitung 18:00-28:59)
+  const lo=malam?18*3600:5*3600, hi=(malam?29*3600:18*3600)-1;
+  let pusat=detikDari(malam?$('jamMalam').value:$('jamSiang').value);
+  if(malam&&pusat<5*3600)pusat+=86400;
+  pusat=Math.min(Math.max(pusat,lo),hi);
+  const r=Math.max(0,(+$('rentang').value)||0)*60;
+  const a=Math.max(lo,pusat-r), b=Math.min(hi,pusat+r); // acak merata di irisan rentang & jendela
+  const t=Math.round(a+Math.random()*(b-a))%86400;
+  const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;
+  return p2(h)+':'+p2(m)+':'+p2(s);
+}
 async function addFiles(fs){
   fs=[...fs].filter(f=>f.type.startsWith('image/'));if(!fs.length)return;
   readInputs();const base=pick(D()),first=photos.length;
@@ -578,10 +598,12 @@ async function addFiles(fs){
     const c=await decode(f,360);
     if(!c)continue;
     const d=Object.assign({},base);
-    if(grpOn()){
+    if(grpOn()||acakOn()){
       const ex=await exifTime(f);
-      if(ex){d.date=ex.date;d.time=ex.time}
-      else d.time=lumaOf(c)<AMBANG_MALAM?$('jamMalam').value:$('jamSiang').value;
+      const malam=ex?isMalam(ex.time):lumaOf(c)<AMBANG_MALAM;
+      if(ex)d.date=ex.date;
+      if(acakOn())d.time=jamAcak(malam);
+      else d.time=ex?ex.time:(malam?$('jamMalam').value:$('jamSiang').value);
     }
     photos.push({name:f.name.replace(/\.[^.]+$/,'')||'foto',file:f,th:mkThumb(c),d});
   }
@@ -591,6 +613,13 @@ async function addFiles(fs){
     if(grpOn())sortGroup(baru);
     await select(photos.indexOf(baru),true);
   }
+}
+function acakSemua(){
+  if(!photos.length){msg('Belum ada foto.');return}
+  photos.forEach(p=>{p.d.time=jamAcak(grpOf(p)===1)});
+  sortGroup();
+  if(cur>=0)select(cur,true);
+  msg('Jam semua foto sudah diacak.');
 }
 async function select(i,skipRead){
   if(!skipRead)readInputs();
@@ -666,6 +695,7 @@ function setNow(){
 }
 $('now').onclick=setNow;
 $('resort').onclick=()=>{readInputs();sortGroup();msg('Foto diurutkan: siang dulu, lalu malam.')};
+$('acakUlang').onclick=acakSemua;
 $('time').addEventListener('change',()=>{readInputs();listThumbs()});
 (function(){
   const off=-new Date().getTimezoneOffset(),z=(off>=0?'+':'-')+p2(Math.floor(Math.abs(off)/60))+':'+p2(Math.abs(off)%60);
