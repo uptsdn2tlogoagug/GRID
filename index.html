@@ -389,6 +389,8 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
 .urow .uf input{width:100%;padding:9px 11px;border:1px solid var(--bd);border-radius:11px;background:var(--fld);outline:none;min-width:0}
 .urow input[readonly]{opacity:.75}.urow>select{flex:0 0 120px}.urow .u-a{margin:0;flex:0 0 auto}
 .urow .pill{font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--cy) 20%,transparent);color:var(--tx)}
+.uself{max-width:420px}.uself input{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:11px;background:var(--fld);outline:none}
+[hidden]{display:none!important}
 .uaddrow{border-top:1px dashed var(--bd);margin-top:6px;padding-top:12px;display:flex;gap:10px}.uaddrow[hidden]{display:none}
 #welcome{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:20px;background:rgba(4,13,18,.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:wfade .4s both;overflow:hidden}
 #welcome.out{animation:wout .45s var(--ease) forwards}
@@ -416,6 +418,9 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
 .cf{position:absolute;top:-14px;left:var(--x);width:9px;height:14px;border-radius:2px;background:var(--c);opacity:0;animation:cfall var(--t) var(--d) ease-in forwards}
 @keyframes cfall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(105vh) rotate(540deg)}}
 </style>
+<style id="grid-gal">.gdbh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:26px 0 12px}.gdbh h2{margin:0;font:800 1.2rem var(--hd);letter-spacing:-.02em}.gdbh small{color:var(--mut)}
+.dbimg{aspect-ratio:4/3;background:linear-gradient(110deg,var(--fld) 30%,color-mix(in srgb,var(--cy) 14%,var(--fld)) 50%,var(--fld) 70%) 0 0/200% 100%;animation:shimmer 1.4s linear infinite}.dbimg.ok{animation:none;background:var(--fld)}.dbimg img{width:100%;height:100%;object-fit:cover;display:block;animation:viewIn .5s var(--ease) both}
+@keyframes shimmer{to{background-position:-200% 0}}</style>
 </head>
 <body>
 <section id="login" aria-label="Masuk">
@@ -571,6 +576,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
   <div class="vh"><div><h1>Galeri</h1><p id="galN"></p></div><div class="btns" style="margin:0"><button class="btn" type="button" data-act="exportcsv">Ekspor CSV</button><button class="btn" type="button" data-act="dlall">Unduh semua file</button><button class="btn" type="button" data-act="dbsaveall">Simpan semua ke database</button><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
   <div class="card" style="margin-bottom:14px"><div class="row"><div><label for="galSearch">Cari foto</label><input id="galSearch" type="text" placeholder="Nama file, kegiatan, koordinat…"></div><div><label for="galDate">Filter tanggal</label><input id="galDate" type="date"></div></div><div class="row"><div><label for="galStatus">Status data</label><select id="galStatus"><option value="all">Semua foto</option><option value="gps">Sudah ada GPS</option><option value="nogps">Belum ada GPS</option><option value="complete">Data lengkap</option><option value="incomplete">Perlu dilengkapi</option><option value="saved">Sudah tersimpan di database</option><option value="unsaved">Belum tersimpan di database</option></select></div><div style="display:flex;align-items:end"><button class="btn" type="button" id="galReset">Reset filter</button></div></div></div>
   <div class="gal" id="gal"></div>
+  <div id="galDb"></div>
 </section>
 <section id="v-db" class="view" hidden>
   <div class="vh"><div><h1>Database</h1><p>Database bersama: simpan foto mentah (tanpa stempel dan tanpa GPS) di Google Drive agar dapat dibuka dari browser dan PC lain.</p></div></div>
@@ -584,14 +590,14 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
       <p class="hint">Link dan kode koneksi disimpan per browser. Masukkan link dan kode yang sama pada perangkat lain.</p></div>
     <div class="card s8"><div class="ct"><h2>Isi database</h2><small id="dbN"></small></div><div id="dbList"></div>
       <div class="btns"><button class="btn" type="button" data-act="dbrefresh">Muat ulang daftar</button></div></div>
-    <div class="card s12"><div class="ct"><h2>Backup &amp; pemulihan</h2><small>Cadangan metadata dan daftar akun</small></div><p class="hint">Foto asli tetap berada di Google Drive. Backup ini menyimpan indeks foto dan daftar akun, bukan menggandakan file JPG.</p><div class="btns"><button class="btn pri" type="button" data-act="backupcreate">Buat backup sekarang</button><button class="btn" type="button" data-act="backuplist">Lihat backup</button></div><div id="backupList" class="hint"></div><p id="backupStat" class="hint"></p></div>
+    <div class="card s12" id="backupCard"><div class="ct"><h2>Backup &amp; pemulihan</h2><small>Cadangan metadata dan daftar akun</small></div><p class="hint">Foto asli tetap berada di Google Drive. Backup ini menyimpan indeks foto dan daftar akun, bukan menggandakan file JPG.</p><div class="btns"><button class="btn pri" type="button" data-act="backupcreate">Buat backup sekarang</button><button class="btn" type="button" data-act="backuplist">Lihat backup</button></div><div id="backupList" class="hint"></div><p id="backupStat" class="hint"></p></div>
   </div>
 </section>
 <section id="v-profile" class="view" hidden>
   <div class="vh"><div><h1>Akun / Profil</h1><p>Kelola daftar akun dan peran yang tersimpan di database Google Drive bersama. Catatan: login aplikasi yang sudah ada masih menggunakan kode akses utama.</p></div></div>
   <div class="card" id="uCard" style="margin-bottom:16px">
-    <div class="ct"><h2>Kode akses pengguna</h2><small id="uN"></small></div>
-    <p class="hint" style="margin:0 0 6px">Kode yang dipakai untuk masuk ke GRID. Admin utama bersifat tetap. Daftar ini tersimpan di browser ini; pindahkan ke perangkat lain lewat Ekspor dan Impor.</p>
+    <div class="ct"><h2 id="uTitle">Kode akses pengguna</h2><small id="uN"></small></div>
+    <p class="hint" id="uHint" style="margin:0 0 6px">Kode yang dipakai untuk masuk ke GRID. Admin utama bersifat tetap. Daftar ini tersimpan di browser ini; pindahkan ke perangkat lain lewat Ekspor dan Impor.</p>
     <div id="uList"><p class="empty-t">Memuat…</p></div>
     <div id="uAdd" class="urow uaddrow" hidden>
       <div class="uf"><input id="uNama" type="text" placeholder="Nama pengguna baru" autocomplete="off"></div>
@@ -602,7 +608,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
     <div id="uTools" class="btns" hidden><button class="btn" type="button" id="uExp">Ekspor daftar</button><button class="btn" type="button" onclick="$('uImpF').click()">Impor daftar</button><input id="uImpF" type="file" accept="application/json" hidden></div>
   </div>
   <div class="dgrid">
-    <div class="card s6">
+    <div class="card s6" id="acctCreateCard">
       <div class="ct"><h2>Buat akun baru</h2></div>
       <label for="newUser">Nama pengguna</label><input id="newUser" type="text" autocomplete="off" placeholder="petugas01">
       <label for="newPass">Kata sandi</label><input id="newPass" type="password" autocomplete="new-password">
@@ -621,7 +627,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
       <div class="btns"><button class="btn pri" type="button" data-act="acctchange">Simpan kata sandi</button><button class="btn" type="button" data-act="acctrefresh">Muat ulang akun</button></div>
       <p id="acctStat" class="hint">Hubungkan database terlebih dahulu.</p>
     </div>
-    <div class="card s12"><div class="ct"><h2>Akun terdaftar</h2><small id="acctN"></small></div><div id="acctList"><p class="empty-t">Belum memuat daftar akun.</p></div></div>
+    <div class="card s12" id="acctListCard"><div class="ct"><h2>Akun terdaftar</h2><small id="acctN"></small></div><div id="acctList"><p class="empty-t">Belum memuat daftar akun.</p></div></div>
   </div>
 </section>
 </div></div>
@@ -1170,7 +1176,7 @@ function setView(v){
   document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   if(v==='dash'){renderDash();setTimeout(()=>dmap.invalidateSize(),50)}
   if(v==='gen')setTimeout(()=>{map.invalidateSize();sched()},50);
-  if(v==='gal')renderGal();
+  if(v==='gal'){renderGal();window.loadDbGal&&loadDbGal()}
   if(v==='db')renderDb();
   if(v==='profile'){renderAccounts();window.renderUsers&&renderUsers()}
   try{history.replaceState(null,'','#'+v)}catch(e){}
@@ -1541,10 +1547,16 @@ function renderWho(){
   let w=$('who');if(!w){sf.insertAdjacentHTML('afterbegin','<div id="who" class="who"></div>');w=$('who')}
   w.innerHTML=me?'<span class="av">'+esc(me.nama.trim().charAt(0).toUpperCase())+'</span><span><b>'+esc(me.nama)+'</b><small>'+esc(ROLE[me.peran]||'Petugas')+'</small></span>':'';
 }
+function applyRole(){['acctCreateCard','acctListCard','backupCard'].forEach(id=>{const e=$(id);if(e)e.hidden=!isAdm()})}
 function initMe(){me=GRID_AUTH.byHash(curHash())||null;renderWho();renderUsers()}
+/* hanya admin yang boleh membuat akun / mengubah peran / backup */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||isAdm())return;
+  if(['acctcreate','acctrole','backupcreate','backuprestore'].includes(b.dataset.act)){e.stopImmediatePropagation();e.preventDefault();toast('Hanya admin yang dapat melakukan ini.')}
+},true);
 const lastMap=()=>{try{return JSON.parse(localStorage.getItem('grid-last-v1'))||{}}catch(e){return{}}};
 function onLogin(h){
-  me=GRID_AUTH.byHash(h)||null;if(!me)return;
+  me=GRID_AUTH.byHash(h)||null;if(!me)return;applyRole();
   const m=lastMap(),prev=m[me.id];m[me.id]=Date.now();
   try{localStorage.setItem('grid-last-v1',JSON.stringify(m))}catch(e){}
   renderWho();renderUsers();showWelcome(me,prev);
@@ -1574,8 +1586,18 @@ function showWelcome(u,prev){
 /* daftar kode akses */
 function renderUsers(){
   const box=$('uList');if(!box)return;
-  const adm=isAdm();$('uAdd').hidden=!adm;$('uTools').hidden=!adm;
-  if(!adm){$('uN').textContent='';box.innerHTML='<p class="empty-t">Hanya admin yang dapat melihat dan mengatur kode akses.</p>';return}
+  const adm=isAdm();applyRole();$('uAdd').hidden=!adm;$('uTools').hidden=!adm;
+  $('uTitle').textContent=adm?'Kode akses pengguna':'Profil saya';
+  $('uHint').textContent=adm?'Kode yang dipakai untuk masuk ke GRID. Admin utama bersifat tetap. Daftar ini tersimpan di browser ini; pindahkan ke perangkat lain lewat Ekspor dan Impor.':'Anda masuk sebagai '+(me?ROLE[me.peran]:'')+'. Anda hanya dapat mengatur profil dan kode akses Anda sendiri.';
+  if(!adm){
+    $('uN').textContent='';
+    box.innerHTML=me?'<div class="uself"><label for="pName">Nama</label><input id="pName" type="text" autocomplete="off" value="'+esc(me.nama)+'">'
+      +'<label for="pOld">Kode saat ini</label><input id="pOld" type="password" autocomplete="new-password">'
+      +'<label for="pNew">Kode baru (min. 4 karakter)</label><input id="pNew" type="password" autocomplete="new-password">'
+      +'<label for="pNew2">Ulangi kode baru</label><input id="pNew2" type="password" autocomplete="new-password">'
+      +'<div class="btns"><button class="btn pri" type="button" data-u="self">Simpan profil</button></div></div>'
+      :'<p class="empty-t">Masuk terlebih dahulu.</p>';
+    return}
   const L=GRID_AUTH.list;$('uN').textContent=L.length+' pengguna';
   box.innerHTML=L.map(u=>{const t=u.tetap;return '<div class="li urow" data-id="'+esc(u.id)+'">'
     +'<div class="uf"><input type="text" class="u-n" value="'+esc(u.nama)+'" '+(t?'readonly':'')+' aria-label="Nama pengguna"></div>'
@@ -1597,7 +1619,21 @@ async function applyUser(u,nama,kode,peran,aktif){
   u.nama=nama;u.peran=peran;u.aktif=aktif;
 }
 $('uList').addEventListener('click',async e=>{
-  const b=e.target.closest('[data-u]');if(!b||!isAdm())return;
+  const b=e.target.closest('[data-u]');if(!b)return;
+  if(b.dataset.u==='self'){
+    if(!me)return;
+    try{
+      const nama=$('pName').value.trim(),old=$('pOld').value.replace(/\s+/g,''),nw=$('pNew').value.trim(),nw2=$('pNew2').value.trim();
+      if(!nama)throw new Error('Nama wajib diisi.');
+      if(await sha(old)!==me.hash)throw new Error('Kode saat ini salah.');
+      if(nw||nw2){
+        if(nw!==nw2)throw new Error('Ulangi kode baru dengan sama.');
+        await applyUser(me,nama,nw,me.peran,true);
+      }else me.nama=nama;
+      GRID_AUTH.save();renderWho();renderUsers();toast('Profil disimpan.');
+    }catch(err){toast(err.message)}
+    return}
+  if(!isAdm())return;
   const row=b.closest('.urow'),u=GRID_AUTH.list.find(x=>x.id===row.dataset.id);if(!u)return;
   if(b.dataset.u==='eye'){const i=row.querySelector('.u-k');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'Lihat':'Sembunyi';return}
   try{
@@ -1608,6 +1644,7 @@ $('uList').addEventListener('click',async e=>{
 });
 $('uAddBtn').onclick=async()=>{
   try{
+    if(!isAdm())throw new Error('Hanya admin yang dapat menambah pengguna.');
     const u={id:'u'+Date.now().toString(36),aktif:true};
     await applyUser(u,$('uNama').value,$('uKode').value.trim(),$('uPeran').value,true);
     GRID_AUTH.list.push(u);GRID_AUTH.save();$('uNama').value=$('uKode').value='';renderUsers();toast('Pengguna "'+u.nama+'" ditambahkan.');
@@ -1633,6 +1670,91 @@ initMe();
 ['dbUrl','dbKode','newUser','newPass','newPass2','accountAdminCode','changeUser','oldPass','changePass','changePass2','uNama','uKode'].forEach(id=>{
   const e=$(id);if(!e)return;e.setAttribute('autocomplete',e.type==='password'?'new-password':'off');e.setAttribute('name','x-'+id+'-'+Math.random().toString(36).slice(2,7));
   e.readOnly=true;e.addEventListener('focus',()=>{e.readOnly=false},{once:true});
+});
+</script>
+<script>
+/* ---------- kompres foto (target ±50% ukuran asli) ---------- */
+const CMPK='grid-compress-v1';
+const cmpOn=()=>{try{return localStorage.getItem(CMPK)!=='0'}catch(e){return true}};
+(function(){
+  const lm=$('lightMode');if(!lm)return;
+  lm.closest('label').insertAdjacentHTML('afterend','<label class="chk" style="color:#cfe2d9;margin:0 0 8px"><input id="cmpOn" type="checkbox"> Kompres foto (target 50%)</label>');
+  const c=$('cmpOn');c.checked=cmpOn();c.addEventListener('change',()=>{try{localStorage.setItem(CMPK,c.checked?'1':'0')}catch(e){}});
+})();
+const toJpg=(cv,q)=>new Promise(r=>cv.toBlob(r,'image/jpeg',q));
+async function shrink(c,target){
+  target=Math.max(15*1024,target);
+  let b=await toJpg(c,.7);if(b.size<=target)return b;
+  let k=Math.min(.95,Math.sqrt(target/b.size)*1.15);
+  for(let i=0;i<5;i++){
+    const w=Math.max(1,Math.round(c.width*k)),h=Math.max(1,Math.round(c.height*k));
+    if(Math.max(w,h)<420)break;
+    const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(c,0,0,w,h);
+    for(const q of [.7,.5]){b=await toJpg(cv,q);if(b.size<=target)return b}
+    k*=.82;
+  }
+  return b;
+}
+const blobB64=b=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(b)});
+/* simpan ke database: foto mentah, dikompres ±50% dari ukuran asli */
+dbSave=async function(p){
+  if(p.dbId)return;
+  const c=await decode(p.file,3000);if(!c)throw new Error('Foto tidak bisa dibaca.');
+  const b=cmpOn()?await shrink(c,p.file.size*.5):await toJpg(c,.85);
+  const r=await dbCall('save',{image:await blobB64(b),meta:{name:p.name,d:{}}});
+  p.dbId=r.data.id;p.dbSig='raw';
+};
+/* unduhan JPG juga dikompres */
+const _bf=blobFor;
+blobFor=async function(p,type){
+  if(type!=='image/jpeg'||!cmpOn())return _bf(p,type);
+  const c=await decode(p.file,3000);if(!c)throw new Error('decode');
+  const s=S(p.d),tc=s.showMap?await thumbFor(s,true):null;
+  if(s.showMap&&!tc)msg('Peta mini gagal dimuat (koneksi/diblokir).');
+  overlay(c.getContext('2d'),c.width,c.height,s,tc);
+  return shrink(c,p.file.size*.5);
+};
+/* ---------- galeri: foto yang tertaut di database ---------- */
+let dbItems=[];const dbThumb=new Map(),tq=[];let tBusy=0,tObs=null;
+const ymd=t=>{const d=new Date(t);return isNaN(d)?'':d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const when=t=>{const d=new Date(t);return isNaN(d)?'-':d.toLocaleString('id-ID')};
+function setThumb(id,url){document.querySelectorAll('.dbimg[data-id="'+id+'"]').forEach(el=>{if(el.querySelector('img'))return;const i=new Image();i.alt='';i.src=url;el.appendChild(i);el.classList.add('ok')})}
+async function runThumbs(){
+  while(tBusy<2&&tq.length){
+    const id=tq.shift();if(dbThumb.has(id)){setThumb(id,dbThumb.get(id));continue}
+    tBusy++;
+    dbCall('get',{id}).then(r=>new Promise(ok=>{const i=new Image();i.onload=()=>{const k=Math.min(1,360/i.width),c=document.createElement('canvas');c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext('2d').drawImage(i,0,0,c.width,c.height);const u=c.toDataURL('image/jpeg',.7);dbThumb.set(id,u);setThumb(id,u);ok()};i.onerror=ok;i.src='data:image/jpeg;base64,'+r.image}))
+      .catch(()=>{}).finally(()=>{tBusy--;runThumbs()});
+  }
+}
+function renderGalDb(){
+  const box=$('galDb');if(!box)return;
+  const q=($('galSearch').value||'').trim().toLowerCase(),dt=$('galDate').value,st=$('galStatus').value;
+  const have=new Set(photos.map(p=>p.dbId).filter(Boolean));
+  let L=(st==='all'||st==='saved')?dbItems.filter(m=>!have.has(m.id)):[];
+  if(q)L=L.filter(m=>((m.name||'')+' '+when(m.savedAt)+' '+ymd(m.savedAt)).toLowerCase().includes(q));
+  if(dt)L=L.filter(m=>ymd(m.savedAt)===dt);
+  const adm=typeof isAdm==='function'&&isAdm();
+  box.innerHTML='<div class="gdbh"><h2>Tersimpan di database</h2><small>'+L.length+' dari '+dbItems.length+' foto</small></div>'
+   +(L.length?'<div class="gal">'+L.map(m=>'<div class="card gi"><div class="dbimg" data-id="'+esc(m.id)+'"></div><div class="gb"><b>'+esc(m.name||'foto')+'</b><small>Tersimpan '+esc(when(m.savedAt))+'</small><div class="btns"><button class="btn pri" type="button" data-act="dbload" data-id="'+esc(m.id)+'">Buka di generator</button>'+(adm?'<button class="btn" type="button" data-act="galdel" data-id="'+esc(m.id)+'">Hapus</button>':'')+'</div></div></div>').join('')+'</div>'
+    :'<div class="card"><p class="empty-t">'+(dbItems.length?'Tidak ada foto database yang cocok dengan pencarian.':'Belum ada foto di database.')+'</p></div>');
+  if(tObs)tObs.disconnect();
+  tObs=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;tObs.unobserve(e.target);const id=e.target.dataset.id;if(dbThumb.has(id))setThumb(id,dbThumb.get(id));else{tq.push(id);runThumbs()}}),{rootMargin:'200px'});
+  box.querySelectorAll('.dbimg').forEach(el=>tObs.observe(el));
+}
+async function loadDbGal(){
+  const box=$('galDb');if(!box)return;const c=dbCfg();
+  if(!c.url||!c.kode){dbItems=[];box.innerHTML='<div class="gdbh"><h2>Tersimpan di database</h2></div><div class="card"><p class="empty-t">Isi link dan kode di menu Database untuk melihat foto yang tersimpan.</p></div>';return}
+  try{const j=await dbCall('list');dbItems=(j.data||[]).slice().reverse()}catch(e){box.innerHTML='<div class="gdbh"><h2>Tersimpan di database</h2></div><div class="card"><p class="empty-t warn">'+esc(e.message)+'</p></div>';return}
+  renderGalDb();
+}
+['galSearch','galDate','galStatus'].forEach(id=>{const e=$(id);if(e){e.setAttribute('autocomplete','off');e.addEventListener(id==='galSearch'?'input':'change',renderGalDb)}});
+$('galReset')&&$('galReset').addEventListener('click',()=>setTimeout(renderGalDb,0));
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act="galdel"]');if(!b)return;
+  if(typeof isAdm!=='function'||!isAdm()){toast('Hanya admin yang dapat menghapus foto database.');return}
+  if(!confirm('Hapus foto ini dari database?'))return;
+  try{await dbCall('delete',{id:b.dataset.id});toast('Foto dihapus.');await loadDbGal()}catch(err){toast(err.message)}
 });
 </script>
 </body>
