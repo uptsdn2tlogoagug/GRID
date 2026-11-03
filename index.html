@@ -613,7 +613,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
       <select id="uPeran" aria-label="Peran"><option value="petugas">Petugas</option><option value="admin">Admin</option><option value="viewer">Viewer</option></select>
       <button class="btn pri" type="button" id="uAddBtn">Tambah pengguna</button>
     </div>
-    <div id="uTools" class="btns" hidden><button class="btn pri" type="button" id="uSyncBtn">Sinkronkan ke database sekarang</button><button class="btn" type="button" id="uExp">Ekspor daftar</button><button class="btn" type="button" onclick="$('uImpF').click()">Impor daftar</button><input id="uImpF" type="file" accept="application/json" hidden></div>
+    <div id="uTools" class="btns" hidden><button class="btn pri" type="button" id="uSyncBtn">Sinkronkan ke database sekarang</button><button class="btn" type="button" id="uLinkBtn">Salin tautan masuk petugas</button><button class="btn" type="button" id="uExp">Ekspor daftar</button><button class="btn" type="button" onclick="$('uImpF').click()">Impor daftar</button><input id="uImpF" type="file" accept="application/json" hidden></div>
   </div>
   <div class="dgrid">
     <div class="card s6" id="acctCreateCard">
@@ -1890,6 +1890,17 @@ document.addEventListener('click',e=>{if(e.target.id==='uSyncBtn'&&isAdm())pullA
     try{localStorage.removeItem(GRID_AUTH.k);sessionStorage.removeItem(GRID_AUTH.k)}catch(e){}location.reload();
   }else if(r.ok&&r.user){u.nama=r.user.nama;u.peran=r.user.peran;GRID_AUTH.save();me=u;renderWho();renderUsers()}
 })();
+/* tautan masuk: membuka tautan ini di komputer lain otomatis mengisi link database */
+const b64u=t=>btoa(t).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+(function(){const m=location.hash.match(/^#db=([A-Za-z0-9_-]+)/);if(!m)return;
+  try{const u=atob(m[1].replace(/-/g,'+').replace(/_/g,'/'));if(urlOk(u))localStorage.setItem('grid-accurl-v1',u)}catch(e){}
+  history.replaceState(null,'',location.pathname+'#gen')})();
+document.addEventListener('click',async e=>{
+  if(e.target.id!=='uLinkBtn'||!isAdm())return;
+  const u=accUrl();if(!u){toast('Isi link database di menu Database dulu.');return}
+  const l=location.origin+'/#db='+b64u(u);
+  try{await navigator.clipboard.writeText(l);toast('Tautan disalin. Kirim ke petugas, buka sekali di komputer mereka lalu masuk dengan kode masing-masing.')}catch(x){prompt('Salin tautan ini:',l)}
+});
 </script>
 </body>
 </html>
