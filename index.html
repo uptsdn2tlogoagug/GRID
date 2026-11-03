@@ -530,17 +530,23 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
     <label class="chk"><input id="sec" type="checkbox"> Tampilkan detik</label>
     <div class="btns"><button class="btn" id="now" type="button">Set ke waktu sekarang</button></div>
     <label class="chk"><input id="autoGrp" type="checkbox" checked> Sortir otomatis siang &amp; malam saat foto diunggah</label>
-    <label class="chk"><input id="autoAcak" type="checkbox" checked> Jam otomatis acak untuk setiap foto</label>
+    <label class="chk"><input id="autoAcak" type="checkbox" checked> Jam otomatis berurutan untuk setiap foto</label>
     <div class="row">
-      <div><label for="jamSiang">Pusat jam siang</label><input id="jamSiang" type="time" step="1" value="10:00:00"></div>
-      <div><label for="jamMalam">Pusat jam malam</label><input id="jamMalam" type="time" step="1" value="21:00:00"></div>
+      <div><label for="jamMulai">Jam mulai</label><input id="jamMulai" type="time" step="1" value="08:00:00"></div>
+      <div><label for="jamAkhir">Batas jam akhir</label><input id="jamAkhir" type="time" step="1" value="00:00:00"></div>
     </div>
     <div class="row">
-      <div><label for="rentang">Rentang acak ± (menit)</label><input id="rentang" type="number" min="0" max="180" step="5" value="60"></div>
+      <div><label for="jarak">Jarak antar foto (menit)</label><input id="jarak" type="number" min="1" max="720" step="1" value="20"></div>
+      <div><label for="variasi">Variasi acak ± (menit)</label><input id="variasi" type="number" min="0" max="360" step="1" value="0"></div>
     </div>
-    <p class="hint">Jam acak berada di sekitar pusat jam siang atau malam. Foto ditentukan siang/malam dari jam asli (EXIF), atau dari kecerahan gambar jika EXIF tidak ada. Foto malam yang terang (misalnya mode malam kamera) bisa terbaca siang: ubah dengan tombol di bawah.</p>
+    <p class="hint">Foto pertama memakai jam mulai, foto berikutnya bertambah sebesar jarak antar foto (mis. 20 menit: 08:00, 08:20, 08:40, …). Isi variasi acak jika jarak tidak ingin persis sama; detik selalu diacak. Batas jam akhir 00:00 berarti sampai tengah malam. Jika foto terlalu banyak untuk muat di rentang jam tersebut, jarak dirapatkan otomatis agar semua foto tetap berada sebelum batas akhir.</p>
+    <details class="hint" style="margin:6px 0 10px"><summary style="cursor:pointer">Jam bawaan siang / malam (dipakai jika jam otomatis dimatikan)</summary>
+    <div class="row">
+      <div><label for="jamSiang">Jam siang</label><input id="jamSiang" type="time" step="1" value="10:00:00"></div>
+      <div><label for="jamMalam">Jam malam</label><input id="jamMalam" type="time" step="1" value="21:00:00"></div>
+    </div></details>
     <div class="btns"><button class="btn" id="togel" type="button" disabled>🌙 Ubah ke malam</button></div>
-    <div class="btns"><button class="btn" id="acakUlang" type="button">🎲 Acak ulang jam semua foto</button></div>
+    <div class="btns"><button class="btn" id="acakUlang" type="button">🎲 Susun ulang jam semua foto</button></div>
     <div class="btns"><button class="btn" id="resort" type="button">↻ Urutkan ulang siang &amp; malam</button></div>
   </div>
 
@@ -822,7 +828,7 @@ function grpOn(){return $('autoGrp').checked}
 function jamOf(t){const p=(t||'').split(':').map(Number);return {h:p[0]||0,m:p[1]||0,s:p[2]||0}}
 function isMalam(t){if(!t)return false;const h=jamOf(t).h;return h>=18||h<5}
 function grpOf(p){return isMalam(p.d.time)?1:0}
-function tsOf(p){const [y,mo,dy]=(p.d.date||'1970-01-01').split('-').map(Number);const j=jamOf(p.d.time);return new Date(y,mo-1,dy,j.h,j.m,j.s).getTime()}
+function tsOf(p){const [y,mo,dy]=(p.d.date||'1970-01-01').split('-').map(Number);const j=jamOf(p.d.time);return new Date(y,mo-1,dy,j.h,j.m,j.s).getTime()+(j.h<5?86400000:0)}
 function sortGroup(fokus){
   const pilih=fokus||photos[cur]||null;
   photos.sort((a,b)=>grpOf(a)-grpOf(b)||tsOf(a)-tsOf(b));
@@ -860,20 +866,72 @@ async function exifTime(f){
   }catch(e){}
   return null;
 }
-/* ---------- jam acak ---------- */
+/* ---------- jam acak berurutan ---------- */
 function acakOn(){return $('autoAcak').checked}
 function detikDari(t){const j=jamOf(t);return j.h*3600+j.m*60+j.s}
+function fmtDetik(t){t=Math.round(t)%86400;if(t<0)t+=86400;return p2(Math.floor(t/3600))+':'+p2(Math.floor(t%3600/60))+':'+p2(t%60)}
+function jendelaJam(){
+  // jendela dalam detik; jika batas akhir <= jam mulai, batas dianggap hari berikutnya (08:00 -> 00:00 = 08:00..24:00)
+  const a=detikDari($('jamMulai').value||'08:00:00');
+  let b=detikDari($('jamAkhir').value||'00:00:00');
+  if(b<=a)b+=86400;
+  return {a,b};
+}
+function jarakMenit(){return Math.max(1,Math.round(+$('jarak').value)||20)}
+function variasiMenit(){return Math.max(0,Math.round(+$('variasi').value)||0)}
+/* Hasilkan n jam berurutan (detik absolut, boleh >86400 jika melewati tengah malam).
+   dari = detik awal foto pertama (default: jam mulai). */
+function deretJam(n,dari){
+  const {a,b}=jendelaJam(), g=jarakMenit(), v=variasiMenit();
+  const awal=dari==null?a:dari, batas=b-60; // batas: menit terakhir yang masih boleh dipakai
+  const base=[awal];
+  for(let i=1;i<n;i++){
+    const jit=v?Math.round((Math.random()*2-1)*v):0;
+    base.push(base[i-1]+Math.max(1,g+jit)*60);
+  }
+  let padat=false,hasil;
+  const akhir=base[n-1];
+  if(n>1&&akhir>batas){
+    // tidak muat: rapatkan jarak secara proporsional agar semua foto sebelum batas akhir
+    padat=true;
+    const sk=Math.max(0,batas-awal)/(akhir-awal);
+    hasil=base.map(t=>Math.min(batas+59,Math.round(awal+(t-awal)*sk)));
+  }else{
+    hasil=base.map(t=>Math.min(b-1,t+Math.floor(Math.random()*60))); // detik acak
+  }
+  return {times:hasil,padat};
+}
+/* Beri jam berurutan ke photos[mulai..akhir) ; lanjut dari foto sebelumnya bila ada */
+function isiJamUrut(daftar,lanjutDari){
+  const {a,b}=jendelaJam();
+  let dari=a,restart=false;
+  if(lanjutDari&&lanjutDari.d.time){
+    let t=detikDari(lanjutDari.d.time);
+    if(t<a)t+=86400;
+    if(t>=a&&t<b){
+      const nx=t+jarakMenit()*60;
+      if(nx<=b-60)dari=nx;else restart=true;
+    }
+  }
+  const r=deretJam(daftar.length,dari);
+  daftar.forEach((p,i)=>{p.d.time=fmtDetik(r.times[i])});
+  return {padat:r.padat,restart};
+}
+function infoUrut(r){
+  if(r.restart)return 'Batas jam akhir terlewati, urutan dimulai lagi dari jam mulai.';
+  if(r.padat)return 'Foto terlalu banyak untuk rentang jam ini, jarak antar foto dirapatkan otomatis.';
+  return '';
+}
+/* Jam acak tunggal di dalam jendela (dipakai tombol Ubah ke malam/siang) */
 function jamAcak(malam){
-  // jendela siang 05:00-17:59; jendela malam 18:00-04:59 (lewat tengah malam, dihitung 18:00-28:59)
+  const {a,b}=jendelaJam();
   const lo=malam?18*3600:5*3600, hi=(malam?29*3600:18*3600)-1;
-  let pusat=detikDari(malam?$('jamMalam').value:$('jamSiang').value);
-  if(malam&&pusat<5*3600)pusat+=86400;
-  pusat=Math.min(Math.max(pusat,lo),hi);
-  const r=Math.max(0,(+$('rentang').value)||0)*60;
-  const a=Math.max(lo,pusat-r), b=Math.min(hi,pusat+r); // acak merata di irisan rentang & jendela
-  const t=Math.round(a+Math.random()*(b-a))%86400;
-  const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;
-  return p2(h)+':'+p2(m)+':'+p2(s);
+  for(const off of [0,86400]){
+    const x=Math.max(lo,a+off), y=Math.min(hi,b-1+off);
+    if(x<=y)return fmtDetik(x+Math.random()*(y-x));
+  }
+  // jendela tidak beririsan dengan siang/malam: pakai jam bawaan
+  return $(malam?'jamMalam':'jamSiang').value||(malam?'21:00:00':'10:00:00');
 }
 async function addFiles(fs){
   fs=[...fs];
@@ -891,12 +949,15 @@ async function addFiles(fs){
       const ex=await exifTime(f);
       const malam=ex?isMalam(ex.time):lumaOf(c)<AMBANG_MALAM;
       if(ex)d.date=ex.date;
-      if(acakOn())d.time=jamAcak(malam);
-      else d.time=ex?ex.time:(malam?$('jamMalam').value:$('jamSiang').value);
+      if(!acakOn())d.time=ex?ex.time:(malam?$('jamMalam').value:$('jamSiang').value);
     }
     photos.push({name:f.name.replace(/\.[^.]+$/,'')||'foto',file:f,th:mkThumb(c),d});
   }
   msg('');
+  if(photos.length>first&&acakOn()){
+    const r=isiJamUrut(photos.slice(first),first>0?photos[first-1]:null);
+    const inf=infoUrut(r);if(inf)msg(inf);
+  }
   if(photos.length>first){
     const baru=photos[first];
     if(grpOn())sortGroup(baru);
@@ -913,10 +974,11 @@ function togelMalam(){
 }
 function acakSemua(){
   if(!photos.length){msg('Belum ada foto.');return}
-  photos.forEach(p=>{p.d.time=jamAcak(grpOf(p)===1)});
-  sortGroup();
-  if(cur>=0)select(cur,true);
-  msg('Jam semua foto sudah diacak.');
+  const pilih=photos[cur]||null;
+  const r=isiJamUrut(photos.slice(),null);
+  listThumbs();
+  if(pilih)select(photos.indexOf(pilih),true);
+  msg(infoUrut(r)||'Jam semua foto sudah disusun ulang dari '+$('jamMulai').value.slice(0,5)+' dengan jarak '+jarakMenit()+' menit.');
 }
 async function select(i,skipRead){
   if(!skipRead)readInputs();
