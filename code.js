@@ -110,7 +110,7 @@ function doPost(e) {
     const idx = readIdx_();
     switch (r.action) {
       case 'ping':
-        return out_({ ok: true, jumlah: idx.length });
+        return out_({ ok: true, jumlah: idx.length, versi: 2 });
       case 'accountList': {
         const users = readAccounts_().map(function (u) {
           return { username: u.username, role: u.role || 'petugas', createdAt: u.createdAt };
