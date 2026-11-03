@@ -173,7 +173,18 @@ input[type=password]:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#07161d">
 <style>#offBar{display:none;background:var(--ac);color:var(--act);padding:10px 14px;border-radius:12px;margin-bottom:14px;font-weight:500}.off #offBar{display:block}</style>
 <script>
-var GRID_AUTH={k:'grid-auth-v1',hs:['213eda2de4c55b2f4f2dd2b69cab3778bc2b88edc4ccc2682d39146040a34d21','eefdc508cd4fe4d7b8f93c0fcf3be4fee8ddfdb657d4a369990c791656ce846b','4f58424983d2592c1bcded043b261969eddb8d497616d76e3d7fa06b95fbaf7b','aa7156ec384e320b428b97e5baa021372114067b79a40c638fc88cf3920630e9']};
+var GRID_AUTH={k:'grid-auth-v1',uk:'grid-users-v1',hs:[],base:[
+{id:'admin',nama:'Lucky Ardiansyah Putra',peran:'admin',hash:'aa7156ec384e320b428b97e5baa021372114067b79a40c638fc88cf3920630e9',kode:'123456788',tetap:1,aktif:true},
+{id:'lama1',nama:'Petugas (kode lama 1)',peran:'petugas',hash:'213eda2de4c55b2f4f2dd2b69cab3778bc2b88edc4ccc2682d39146040a34d21',aktif:true},
+{id:'lama2',nama:'Petugas (kode lama 2)',peran:'petugas',hash:'eefdc508cd4fe4d7b8f93c0fcf3be4fee8ddfdb657d4a369990c791656ce846b',aktif:true},
+{id:'lama3',nama:'Petugas (kode lama 3)',peran:'petugas',hash:'4f58424983d2592c1bcded043b261969eddb8d497616d76e3d7fa06b95fbaf7b',aktif:true}]};
+GRID_AUTH.list=(function(){var l=null;try{l=JSON.parse(localStorage.getItem(GRID_AUTH.uk))}catch(e){}
+if(!Array.isArray(l)||!l.length)l=GRID_AUTH.base.map(function(x){return Object.assign({},x)});
+var i=l.findIndex(function(x){return x.id==='admin'});if(i<0)l.unshift(Object.assign({},GRID_AUTH.base[0]));else l[i]=Object.assign({},l[i],GRID_AUTH.base[0]);return l})();
+GRID_AUTH.sync=function(){GRID_AUTH.hs.length=0;GRID_AUTH.list.forEach(function(u){if(u.aktif!==false&&u.hash)GRID_AUTH.hs.push(u.hash)})};
+GRID_AUTH.save=function(){try{localStorage.setItem(GRID_AUTH.uk,JSON.stringify(GRID_AUTH.list))}catch(e){}GRID_AUTH.sync()};
+GRID_AUTH.byHash=function(h){return GRID_AUTH.list.find(function(u){return u.hash===h&&u.aktif!==false})};
+GRID_AUTH.sync();
 try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k);if(GRID_AUTH.hs.indexOf(_a)<0)document.documentElement.classList.add('locked')}catch(e){document.documentElement.classList.add('locked')}
 </script>
 <style>
@@ -370,6 +381,40 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
 @media(max-width:900px){.tabs{background:color-mix(in srgb,var(--sb) 94%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}.tabs .nv.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--act);box-shadow:0 8px 18px -8px var(--ac)}.tabs .nv:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
+<style id="grid-users">
+.who{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(207,226,217,.16)}
+.who .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;font:800 .95rem var(--hd);color:var(--act);background:linear-gradient(135deg,var(--ac),var(--ac2))}
+.who b{display:block;color:#fff;font-size:.82rem;line-height:1.2}.who small{color:#8fb0a2;font-size:.72rem}
+.urow{align-items:center;flex-wrap:wrap}.urow .uf{flex:1 1 170px;min-width:0;display:flex;gap:6px}
+.urow .uf input{width:100%;padding:9px 11px;border:1px solid var(--bd);border-radius:11px;background:var(--fld);outline:none;min-width:0}
+.urow input[readonly]{opacity:.75}.urow>select{flex:0 0 120px}.urow .u-a{margin:0;flex:0 0 auto}
+.urow .pill{font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--cy) 20%,transparent);color:var(--tx)}
+.uaddrow{border-top:1px dashed var(--bd);margin-top:6px;padding-top:12px;display:flex;gap:10px}.uaddrow[hidden]{display:none}
+#welcome{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:20px;background:rgba(4,13,18,.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:wfade .4s both;overflow:hidden}
+#welcome.out{animation:wout .45s var(--ease) forwards}
+@keyframes wfade{from{opacity:0}}@keyframes wout{to{opacity:0}}
+.wc{position:relative;width:min(440px,100%);text-align:center;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:28px;padding:34px 28px 30px;overflow:hidden;box-shadow:0 30px 80px -20px rgba(0,0,0,.6);animation:wpop .8s cubic-bezier(.2,1.2,.3,1) both}
+#welcome.out .wc{animation:wdown .45s var(--ease) forwards}
+@keyframes wpop{from{opacity:0;transform:translateY(40px) scale(.86)}}@keyframes wdown{to{opacity:0;transform:translateY(24px) scale(.95)}}
+.w-ring{width:76px;height:76px;margin:0 auto 14px;position:relative;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:grid;place-items:center}
+.w-ring::before,.w-ring::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--cy);animation:ping 2.4s var(--ease) infinite}.w-ring::after{animation-delay:1.1s}
+.w-ring svg{width:46px;height:46px;fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.w-ring circle{stroke-opacity:.35}.w-ring path{stroke-dasharray:44;stroke-dashoffset:44;animation:wdraw .6s .45s var(--ease) forwards}
+@keyframes wdraw{to{stroke-dashoffset:0}}
+.w-g{margin:0;color:var(--mut);font-size:1rem;animation:wup .6s .3s var(--ease) both}
+.w-n{margin:4px 0 10px;font:800 1.75rem/1.15 var(--hd);letter-spacing:-.03em;animation:wup .6s .4s var(--ease) both}
+.w-role{display:inline-block;font-weight:700;font-size:.78rem;padding:5px 14px;border-radius:999px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--act);animation:wup .6s .5s var(--ease) both}
+.w-info{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px;margin:20px 0 14px;animation:wup .6s .6s var(--ease) both}
+.w-info div{background:var(--fld);border:1px solid var(--bd);border-radius:14px;padding:10px 6px}
+.w-info b{display:block;font:800 1.05rem var(--hd);font-variant-numeric:tabular-nums}.w-info span{display:block;color:var(--mut);font-size:.7rem;margin-top:2px}
+.w-tip,.w-last{margin:6px 0;color:var(--mut);font-size:.82rem;animation:wup .6s .7s var(--ease) both}
+.w-tip kbd{border:1px solid var(--bd);border-bottom-width:2px;border-radius:5px;padding:0 6px;background:var(--fld);font:700 .75rem inherit}
+.wc .btn{width:100%;margin-top:14px;padding:12px;animation:wup .6s .8s var(--ease) both}
+.w-bar{position:absolute;left:0;bottom:0;height:4px;width:100%;background:linear-gradient(90deg,var(--ac),var(--ac2));transform-origin:left;animation:wbar 7s linear forwards}
+@keyframes wbar{to{transform:scaleX(0)}}@keyframes wup{from{opacity:0;transform:translateY(14px)}}
+.cf{position:absolute;top:-14px;left:var(--x);width:9px;height:14px;border-radius:2px;background:var(--c);opacity:0;animation:cfall var(--t) var(--d) ease-in forwards}
+@keyframes cfall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(105vh) rotate(540deg)}}
+</style>
 </head>
 <body>
 <section id="login" aria-label="Masuk">
@@ -543,6 +588,18 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
 </section>
 <section id="v-profile" class="view" hidden>
   <div class="vh"><div><h1>Akun / Profil</h1><p>Kelola daftar akun dan peran yang tersimpan di database Google Drive bersama. Catatan: login aplikasi yang sudah ada masih menggunakan kode akses utama.</p></div></div>
+  <div class="card" id="uCard" style="margin-bottom:16px">
+    <div class="ct"><h2>Kode akses pengguna</h2><small id="uN"></small></div>
+    <p class="hint" style="margin:0 0 6px">Kode yang dipakai untuk masuk ke GRID. Admin utama bersifat tetap. Daftar ini tersimpan di browser ini; pindahkan ke perangkat lain lewat Ekspor dan Impor.</p>
+    <div id="uList"><p class="empty-t">Memuat…</p></div>
+    <div id="uAdd" class="urow uaddrow" hidden>
+      <div class="uf"><input id="uNama" type="text" placeholder="Nama pengguna baru" autocomplete="off"></div>
+      <div class="uf"><input id="uKode" type="text" placeholder="Kode akses (min. 4 karakter)" autocomplete="off"></div>
+      <select id="uPeran" aria-label="Peran"><option value="petugas">Petugas</option><option value="admin">Admin</option><option value="viewer">Viewer</option></select>
+      <button class="btn pri" type="button" id="uAddBtn">Tambah pengguna</button>
+    </div>
+    <div id="uTools" class="btns" hidden><button class="btn" type="button" id="uExp">Ekspor daftar</button><button class="btn" type="button" onclick="$('uImpF').click()">Impor daftar</button><input id="uImpF" type="file" accept="application/json" hidden></div>
+  </div>
   <div class="dgrid">
     <div class="card s6">
       <div class="ct"><h2>Buat akun baru</h2></div>
@@ -1114,7 +1171,7 @@ function setView(v){
   if(v==='gen')setTimeout(()=>{map.invalidateSize();sched()},50);
   if(v==='gal')renderGal();
   if(v==='db')renderDb();
-  if(v==='profile')renderAccounts();
+  if(v==='profile'){renderAccounts();window.renderUsers&&renderUsers()}
   try{history.replaceState(null,'','#'+v)}catch(e){}
   scrollTo(0,0);
 }
@@ -1456,7 +1513,7 @@ $('loginForm').addEventListener('submit',async e=>{
   if(GRID_AUTH.hs.indexOf(h)>=0){
     fails=0;er.textContent='';
     try{($('loginKeep').checked?localStorage:sessionStorage).setItem(LK,h)}catch(x){}
-    $('loginCode').value='';unlock();
+    $('loginCode').value='';unlock();window.onLogin&&onLogin(h);
   }else{
     fails++;er.textContent='Kode salah.';$('loginCode').select();
     if(fails>=3){lockUntil=Date.now()+30000;fails=0;er.textContent='Kode salah 3 kali. Tunggu 30 detik.'}
@@ -1469,6 +1526,104 @@ document.addEventListener('click',e=>{
   try{localStorage.removeItem(LK);sessionStorage.removeItem(LK)}catch(x){}
   location.reload();
 });
+</script>
+<script>
+/* ---------- kode akses pengguna + sambutan ---------- */
+let me=null;
+const curHash=()=>{try{return localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k)}catch(e){return null}};
+const isAdm=()=>!!(me&&me.peran==='admin');
+const ROLE={admin:'Admin',petugas:'Petugas',viewer:'Viewer'};
+function renderWho(){
+  const sf=document.querySelector('.sidefoot');if(!sf)return;
+  let w=$('who');if(!w){sf.insertAdjacentHTML('afterbegin','<div id="who" class="who"></div>');w=$('who')}
+  w.innerHTML=me?'<span class="av">'+esc(me.nama.trim().charAt(0).toUpperCase())+'</span><span><b>'+esc(me.nama)+'</b><small>'+esc(ROLE[me.peran]||'Petugas')+'</small></span>':'';
+}
+function initMe(){me=GRID_AUTH.byHash(curHash())||null;renderWho();renderUsers()}
+const lastMap=()=>{try{return JSON.parse(localStorage.getItem('grid-last-v1'))||{}}catch(e){return{}}};
+function onLogin(h){
+  me=GRID_AUTH.byHash(h)||null;if(!me)return;
+  const m=lastMap(),prev=m[me.id];m[me.id]=Date.now();
+  try{localStorage.setItem('grid-last-v1',JSON.stringify(m))}catch(e){}
+  renderWho();renderUsers();showWelcome(me,prev);
+}
+function showWelcome(u,prev){
+  const old=$('welcome');if(old)old.remove();
+  const now=new Date(),hr=now.getHours();
+  const g=hr<4?'Selamat dini hari':hr<11?'Selamat pagi':hr<15?'Selamat siang':hr<18?'Selamat sore':'Selamat malam';
+  const clk=()=>new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).replace(/\./g,':');
+  const dbOk=!!(dbCfg().url&&dbCfg().kode);
+  const cf=Array.from({length:22},(_,i)=>'<i class="cf" style="--x:'+(Math.random()*100).toFixed(1)+'%;--d:'+(Math.random()*.9).toFixed(2)+'s;--t:'+(2.2+Math.random()*1.6).toFixed(2)+'s;--c:'+['#19d3c5','#f57a1a','#fff','#ffd166'][i%4]+'"></i>').join('');
+  const el=document.createElement('div');el.id='welcome';el.setAttribute('role','dialog');el.setAttribute('aria-label','Selamat datang');
+  el.innerHTML=cf+'<div class="wc"><div class="w-ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27"/><path d="M20 33l8 8 16-17"/></svg></div>'
+   +'<p class="w-g">'+g+',</p><h2 class="w-n">'+esc(u.nama)+'</h2><span class="w-role">'+esc(ROLE[u.peran]||'Petugas')+'</span>'
+   +'<div class="w-info"><div><b id="wClk">'+clk()+'</b><span>'+now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</span></div>'
+   +'<div><b>'+photos.length+'</b><span>foto di sesi ini</span></div><div><b>'+(dbOk?'Siap':'Belum')+'</b><span>database</span></div></div>'
+   +'<p class="w-tip">Tips: tekan <kbd>Q</kbd> / <kbd>E</kbd> untuk pindah foto.</p>'
+   +'<p class="w-last">'+(prev?'Terakhir masuk: '+new Date(prev).toLocaleString('id-ID'):'Ini login pertama Anda di perangkat ini.')+'</p>'
+   +'<button class="btn pri" type="button" id="wGo">Mulai bekerja</button><i class="w-bar"></i></div>';
+  document.body.appendChild(el);
+  const tick=setInterval(()=>{const c=$('wClk');if(c)c.textContent=clk()},1000);
+  let done=false;const close=()=>{if(done)return;done=true;clearInterval(tick);clearTimeout(tm);document.removeEventListener('keydown',esk);el.classList.add('out');setTimeout(()=>el.remove(),450)};
+  const esk=e=>{if(e.key==='Escape'||e.key==='Enter')close()};
+  const tm=setTimeout(close,7000);
+  $('wGo').onclick=close;el.addEventListener('click',e=>{if(e.target===el)close()});document.addEventListener('keydown',esk);$('wGo').focus();
+}
+/* daftar kode akses */
+function renderUsers(){
+  const box=$('uList');if(!box)return;
+  const adm=isAdm();$('uAdd').hidden=!adm;$('uTools').hidden=!adm;
+  if(!adm){$('uN').textContent='';box.innerHTML='<p class="empty-t">Hanya admin yang dapat melihat dan mengatur kode akses.</p>';return}
+  const L=GRID_AUTH.list;$('uN').textContent=L.length+' pengguna';
+  box.innerHTML=L.map(u=>{const t=u.tetap;return '<div class="li urow" data-id="'+esc(u.id)+'">'
+    +'<div class="uf"><input type="text" class="u-n" value="'+esc(u.nama)+'" '+(t?'readonly':'')+' aria-label="Nama pengguna"></div>'
+    +'<div class="uf uk"><input type="password" class="u-k" value="'+esc(u.kode||'')+'" placeholder="'+(u.kode?'':'Kode lama tersembunyi, isi untuk mengganti')+'" '+(t?'readonly':'')+' autocomplete="off" aria-label="Kode akses"><button class="btn" type="button" data-u="eye">Lihat</button></div>'
+    +'<select class="u-r" aria-label="Peran" '+(t?'disabled':'')+'>'+Object.keys(ROLE).map(k=>'<option value="'+k+'"'+(k===u.peran?' selected':'')+'>'+ROLE[k]+'</option>').join('')+'</select>'
+    +'<label class="chk u-a"><input type="checkbox" class="u-on" '+(u.aktif!==false?'checked':'')+(t?' disabled':'')+'> Aktif</label>'
+    +(t?'<span class="pill">Tetap</span>':'<button class="btn pri" type="button" data-u="save">Simpan</button><button class="btn" type="button" data-u="del">Hapus</button>')+'</div>'}).join('');
+}
+async function applyUser(u,nama,kode,peran,aktif){
+  nama=nama.trim();if(!nama)throw new Error('Nama pengguna wajib diisi.');
+  if(kode){
+    if(kode.length<4)throw new Error('Kode akses minimal 4 karakter.');
+    const h=await sha(kode.replace(/\s+/g,''));
+    if(GRID_AUTH.list.some(x=>x!==u&&x.hash===h))throw new Error('Kode akses itu sudah dipakai pengguna lain.');
+    const mine=u.hash&&u.hash===curHash();u.hash=h;u.kode=kode;
+    if(mine){try{(localStorage.getItem(GRID_AUTH.k)?localStorage:sessionStorage).setItem(GRID_AUTH.k,h)}catch(e){}}
+  }
+  if(!u.hash)throw new Error('Isi kode akses.');
+  u.nama=nama;u.peran=peran;u.aktif=aktif;
+}
+$('uList').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-u]');if(!b||!isAdm())return;
+  const row=b.closest('.urow'),u=GRID_AUTH.list.find(x=>x.id===row.dataset.id);if(!u)return;
+  if(b.dataset.u==='eye'){const i=row.querySelector('.u-k');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'Lihat':'Sembunyi';return}
+  try{
+    if(b.dataset.u==='del'){if(!confirm('Hapus pengguna "'+u.nama+'"? Kodenya tidak bisa dipakai lagi.'))return;GRID_AUTH.list=GRID_AUTH.list.filter(x=>x!==u);GRID_AUTH.save();toast('Pengguna dihapus.')}
+    else{await applyUser(u,row.querySelector('.u-n').value,row.querySelector('.u-k').value.trim(),row.querySelector('.u-r').value,row.querySelector('.u-on').checked);GRID_AUTH.save();toast('Perubahan "'+u.nama+'" disimpan.')}
+    me=GRID_AUTH.byHash(curHash())||me;renderWho();renderUsers();
+  }catch(err){toast(err.message)}
+});
+$('uAddBtn').onclick=async()=>{
+  try{
+    const u={id:'u'+Date.now().toString(36),aktif:true};
+    await applyUser(u,$('uNama').value,$('uKode').value.trim(),$('uPeran').value,true);
+    GRID_AUTH.list.push(u);GRID_AUTH.save();$('uNama').value=$('uKode').value='';renderUsers();toast('Pengguna "'+u.nama+'" ditambahkan.');
+  }catch(err){toast(err.message)}
+};
+$('uExp').onclick=()=>{saveBlob(new Blob([JSON.stringify(GRID_AUTH.list.filter(u=>!u.tetap),null,1)],{type:'application/json'}),'GRID-kode-akses.json');toast('Berkas berisi kode asli. Simpan dengan aman.')};
+$('uImpF').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f||!isAdm())return;
+  try{
+    const arr=JSON.parse(await f.text());if(!Array.isArray(arr))throw 0;let n=0;
+    for(const x of arr){
+      if(!x||!x.nama||!(x.kode||x.hash)||GRID_AUTH.list.some(y=>y.id===x.id||(x.hash&&y.hash===x.hash)))continue;
+      const u={id:x.id||'u'+Date.now().toString(36)+n,aktif:x.aktif!==false,hash:x.hash,kode:x.kode};
+      await applyUser(u,String(x.nama),x.kode||'',ROLE[x.peran]?x.peran:'petugas',u.aktif);GRID_AUTH.list.push(u);n++;
+    }
+    GRID_AUTH.save();renderUsers();toast(n+' pengguna diimpor.');
+  }catch(err){toast('Berkas tidak valid.')}
+};
+initMe();
 </script>
 </body>
 </html>
