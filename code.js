@@ -56,13 +56,16 @@ function doGet() { return out_({ ok: true, pesan: 'Database GRID aktif' }); }
 
 function doPost(e) {
   let r;
-  try { r = JSON.parse(e.postData.contents); }
+  try { r = JSON.parse(e && e.postData && e.postData.contents || '{}'); }
   catch (x) { return out_({ ok: false, error: 'Permintaan tidak valid' }); }
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return out_({ ok: false, error: 'Format permintaan tidak valid.' });
   if (r.kode !== KODE) return out_({ ok: false, error: 'Kode rahasia salah' });
 
   const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  let locked = false;
   try {
+    lock.waitLock(20000);
+    locked = true;
     const idx = readIdx_();
     switch (r.action) {
       case 'ping':
@@ -143,9 +146,13 @@ function doPost(e) {
         if (!it.hasNext()) return out_({ ok: false, error: 'File backup tidak ditemukan.' });
         const snap = JSON.parse(it.next().getBlob().getDataAsString());
         if (!Array.isArray(snap.index) || !Array.isArray(snap.accounts)) return out_({ ok: false, error: 'Format backup tidak valid.' });
-        // Verifikasi semua file foto dalam backup masih ada sebelum mengganti indeks.
-        const valid = snap.index.every(function (m) { return m && m.id && m.fileId; });
-        if (!valid) return out_({ ok: false, error: 'Indeks backup tidak valid.' });
+        // Pastikan struktur indeks valid dan semua file foto masih tersedia di Drive.
+        const valid = snap.index.every(function (m) {
+          if (!m || !m.id || !m.fileId) return false;
+          try { return DriveApp.getFileById(m.fileId).getMimeType().indexOf('image/') === 0; }
+          catch (missingFile) { return false; }
+        });
+        if (!valid) return out_({ ok: false, error: 'Backup tidak dapat dipulihkan: ada data atau file foto yang tidak valid/tidak ditemukan di Drive.' });
         writeIdx_(snap.index);
         writeAccounts_(snap.accounts);
         return out_({ ok: true, pesan: 'Backup dipulihkan.', jumlah: snap.index.length });
@@ -170,10 +177,22 @@ function doPost(e) {
       case 'list':
         return out_({ ok: true, data: idx });
       case 'save': {
+        if (!r.meta || typeof r.meta !== 'object' || !r.meta.d || typeof r.meta.d !== 'object') {
+          return out_({ ok: false, error: 'Metadata foto tidak lengkap.' });
+        }
+        if (typeof r.image !== 'string' || !r.image || r.image.length > 18 * 1024 * 1024) {
+          return out_({ ok: false, error: 'Data foto kosong atau terlalu besar. Coba gunakan foto berukuran lebih kecil.' });
+        }
+        let bytes;
+        try { bytes = Utilities.base64Decode(r.image); }
+        catch (decodeError) { return out_({ ok: false, error: 'Format data foto tidak valid.' }); }
+        if (!bytes || !bytes.length || bytes.length > 13 * 1024 * 1024) {
+          return out_({ ok: false, error: 'Ukuran foto tidak didukung.' });
+        }
         const id = Utilities.getUuid().slice(0, 8) + '-' + Date.now().toString(36);
-        const blob = Utilities.newBlob(Utilities.base64Decode(r.image), 'image/jpeg', id + '.jpg');
+        const blob = Utilities.newBlob(bytes, 'image/jpeg', id + '.jpg');
         const f = folder_().createFile(blob);
-        const m = { id: id, fileId: f.getId(), name: String(r.meta.name || 'foto'),
+        const m = { id: id, fileId: f.getId(), name: String(r.meta.name || 'foto').slice(0, 180),
                     d: r.meta.d, savedAt: new Date().toISOString() };
         idx.push(m);
         writeIdx_(idx);
@@ -182,7 +201,10 @@ function doPost(e) {
       case 'update': {
         const m = idx.find(function (x) { return x.id === r.id; });
         if (!m) return out_({ ok: false, error: 'Data tidak ditemukan' });
-        m.name = String(r.meta.name || m.name);
+        if (!r.meta || typeof r.meta !== 'object' || !r.meta.d || typeof r.meta.d !== 'object') {
+          return out_({ ok: false, error: 'Metadata foto tidak lengkap.' });
+        }
+        m.name = String(r.meta.name || m.name).slice(0, 180);
         m.d = r.meta.d;
         m.updatedAt = new Date().toISOString();
         writeIdx_(idx);
@@ -208,6 +230,6 @@ function doPost(e) {
   } catch (err) {
     return out_({ ok: false, error: String(err) });
   } finally {
-    lock.releaseLock();
+    if (locked) lock.releaseLock();
   }
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GPS — Generator Foto</title>
+<title>GRID — Manajemen Foto GPS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
@@ -184,6 +184,114 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
 .lcard .btn{width:100%;justify-content:center;padding:12px}
 #loginErr{min-height:1.3em;margin:10px 0 0;color:#d64545;font-weight:500}
 </style>
+
+<style id="grid-redesign">
+:root{
+  --bg:#f3f6f5;--card:#fff;--tx:#172b26;--mut:#687b74;--bd:#dfe8e4;
+  --fld:#f7faf8;--ac:#147d68;--ac2:#20a58a;--act:#fff;--sb:#102f28;
+  --sh:0 2px 5px rgba(16,47,40,.035),0 12px 34px rgba(16,47,40,.055);
+}
+@media(prefers-color-scheme:dark){
+ :root{--bg:#0b1512;--card:#12221c;--tx:#e7f1ec;--mut:#9aada4;--bd:#263b32;
+ --fld:#0e1c16;--ac:#36b99a;--ac2:#58d1b1;--act:#08231b;--sb:#091d17;
+ --sh:0 8px 30px rgba(0,0,0,.22)}
+}
+body{background:var(--bg);letter-spacing:-.008em}
+.app{grid-template-columns:252px minmax(0,1fr)}
+.side{padding:26px 16px;gap:28px;box-shadow:5px 0 28px rgba(10,35,28,.06)}
+.brand{padding:0 8px 18px;border-bottom:1px solid rgba(220,245,235,.12)}
+.brand b{font-size:1.32rem;letter-spacing:.04em}
+.brand span{display:block;margin-top:4px;letter-spacing:.01em}
+.brand .logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(145deg,#24aa8b,#0c6958);color:#fff}
+.side nav{gap:7px}
+.nv{padding:12px 13px;border-radius:12px;gap:13px;font-size:.9rem;transition:background .16s,color .16s,transform .16s}
+.nv svg{width:19px;height:19px}
+.nv.on{background:rgba(53,190,153,.17);color:#73e0bf;box-shadow:inset 3px 0 #53d2ad}
+.nv:hover{background:rgba(255,255,255,.09);transform:translateX(2px)}
+.content{padding:34px clamp(18px,3vw,48px) 56px}
+.view{max-width:1380px}
+.vh{margin-bottom:24px;align-items:center}
+.vh h1{font-size:clamp(1.7rem,2.3vw,2.25rem);letter-spacing:-.045em;font-weight:700}
+.vh p{font-size:.9rem;color:var(--mut)}
+.card,.kpis{border-radius:18px;border-color:var(--bd);box-shadow:var(--sh)}
+.card{padding:19px}
+.ct{margin-bottom:15px}
+.ct h2,.card h2{font-size:1rem;font-weight:650;letter-spacing:-.02em}
+.kpis{grid-template-columns:repeat(4,minmax(0,1fr));background:var(--card)}
+.kpi{padding:23px 24px;border-left:1px solid var(--bd)}
+.kpi b{font-size:2.05rem;letter-spacing:-.06em}
+.kpi span{font-size:.8rem;font-weight:500}
+.dgrid{gap:18px;margin-top:18px}
+.mapcard{min-height:430px}
+#dmap{min-height:365px}
+#dEmpty{border-radius:13px}
+.btn{border-radius:11px;padding:10px 15px;font-size:.84rem;font-weight:600}
+.btn.pri{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;box-shadow:0 5px 14px rgba(20,125,104,.16)}
+.btn.pri:hover:not(:disabled){filter:brightness(1.05);transform:translateY(-1px)}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],select,textarea{
+ border-radius:11px;padding:11px 13px;font-size:.88rem
+}
+label{font-size:.78rem;font-weight:600}
+.search{margin-top:12px}
+#map{height:310px}
+.gal{grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:17px}
+.gi{padding:0;border-radius:16px}
+.gi img{aspect-ratio:4/3}
+.gi .gb{padding:15px}
+.gi .btns .btn{padding:8px 10px}
+.li{padding:13px 0}
+.tabs{box-shadow:0 -8px 28px rgba(10,35,28,.12)}
+#toast{border:1px solid rgba(255,255,255,.12);font-size:.86rem}
+#offBar{border-radius:12px;font-size:.84rem}
+details.card>summary{padding:2px 0}
+details.card[open]>summary{padding-bottom:14px;border-bottom:1px solid var(--bd)}
+#v-gen main{gap:18px}
+#v-gen .preview .card{padding:15px}
+#stage{background:linear-gradient(145deg,var(--fld),var(--bg));border-radius:15px}
+#editing{line-height:1.55}
+#msg{font-size:.84rem}
+#login{background:radial-gradient(ellipse at top left,#1b6554 0%,var(--sb) 55%)}
+.lcard{border-radius:24px;padding:34px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+@media(max-width:1100px){
+ .app{grid-template-columns:220px minmax(0,1fr)}
+ .content{padding:25px 22px 46px}
+ .kpi{padding:19px}
+}
+@media(max-width:900px){
+ .app{grid-template-columns:1fr}
+ .content{padding:20px 14px 100px}
+ .tabs{padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))}
+ .tabs .nv{border-radius:10px;font-size:.69rem}
+ .tabs .nv.on{background:rgba(53,190,153,.17);color:#73e0bf;box-shadow:none}
+ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .kpi{padding:17px 18px}
+ .kpi:nth-child(3){border-top:1px solid var(--bd)}
+ .kpi:nth-child(4){border-top:1px solid var(--bd)}
+ .vh{align-items:flex-start}
+ .vh h1{font-size:1.65rem}
+ .mapcard{min-height:370px}
+ #dmap{min-height:300px}
+ #dEmpty{align-items:flex-start;flex-direction:column}
+ #v-gen main{gap:14px}
+ .gal{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+}
+@media(max-width:520px){
+ .kpi b{font-size:1.65rem}
+ .kpi span{font-size:.75rem}
+ .card{padding:15px}
+ .row{grid-template-columns:1fr}
+ .vh .btns{width:100%}
+ .vh .btns .btn{flex:1}
+ .gal{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .gi .gb{padding:11px}
+ .gi .btns{gap:5px;flex-wrap:wrap}
+ .gi .btns .btn{flex:1 1 42%;font-size:.72rem;padding:7px 6px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
+</style>
+
 </head>
 <body>
 <section id="login" aria-label="Masuk">
@@ -335,7 +443,7 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
 </main>
 </section>
 <section id="v-gal" class="view" hidden>
-  <div class="vh"><div><h1>Galeri</h1><p id="galN"></p></div><div class="btns" style="margin:0"><button class="btn" type="button" data-act="dlall">Unduh semua file</button><button class="btn" type="button" data-act="dbsaveall">Simpan semua ke database</button><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
+  <div class="vh"><div><h1>Galeri</h1><p id="galN"></p></div><div class="btns" style="margin:0"><button class="btn" type="button" data-act="exportcsv">Ekspor CSV</button><button class="btn" type="button" data-act="dlall">Unduh semua file</button><button class="btn" type="button" data-act="dbsaveall">Simpan semua ke database</button><button class="btn pri" type="button" data-act="add">＋ Tambah foto</button></div></div>
   <div class="card" style="margin-bottom:14px"><div class="row"><div><label for="galSearch">Cari foto</label><input id="galSearch" type="text" placeholder="Nama file, kegiatan, koordinat…"></div><div><label for="galDate">Filter tanggal</label><input id="galDate" type="date"></div></div><div class="row"><div><label for="galStatus">Status data</label><select id="galStatus"><option value="all">Semua foto</option><option value="gps">Sudah ada GPS</option><option value="nogps">Belum ada GPS</option><option value="complete">Data lengkap</option><option value="incomplete">Perlu dilengkapi</option><option value="saved">Sudah tersimpan di database</option><option value="unsaved">Belum tersimpan di database</option></select></div><div style="display:flex;align-items:end"><button class="btn" type="button" id="galReset">Reset filter</button></div></div></div>
   <div class="gal" id="gal"></div>
 </section>
@@ -625,7 +733,11 @@ function jamAcak(malam){
   return p2(h)+':'+p2(m)+':'+p2(s);
 }
 async function addFiles(fs){
-  fs=[...fs].filter(f=>f.type.startsWith('image/'));if(!fs.length)return;
+  fs=[...fs];
+  const oversized=fs.filter(f=>f.type.startsWith('image/')&&f.size>30*1024*1024);
+  fs=fs.filter(f=>f.type.startsWith('image/')&&f.size<=30*1024*1024);
+  if(oversized.length)msg(oversized.length+' foto dilewati karena ukuran file melebihi 30 MB.');
+  if(!fs.length){if(!oversized.length)msg('Pilih file gambar JPG, PNG, atau format gambar yang didukung.');return}
   readInputs();const base=pick(D()),first=photos.length;
   msg('Memuat foto…');
   for(const f of fs){
@@ -872,8 +984,18 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 function hist(){try{return JSON.parse(localStorage.getItem(HK))||[]}catch(e){return[]}}
 function logExp(l){const h=hist();l.forEach(p=>h.push({t:Date.now(),n:p.name,ti:p.d.title,la:+p.d.lat,lo:+p.d.lng}));try{localStorage.setItem(HK,JSON.stringify(h.slice(-300)))}catch(e){}renderDash();renderGal();if(window.autoDb)autoDb(l)}
 const ago=t=>{const m=Math.round((Date.now()-t)/6e4);return m<1?'baru saja':m<60?m+' mnt lalu':m<1440?Math.round(m/60)+' jam lalu':Math.round(m/1440)+' hari lalu'};
-const okLL=d=>!isNaN(parseFloat(d.lat))&&!isNaN(parseFloat(d.lng));
-function problems(p){const d=p.d,o=[];if(!d.title.trim())o.push('judul kosong');if(!okLL(d))o.push('koordinat kosong');if(!d.date)o.push('tanggal kosong');return o}
+const okLL=d=>{
+  const lat=Number(d&&d.lat),lng=Number(d&&d.lng);
+  return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;
+};
+function problems(p){
+  const d=p&&p.d||{},o=[];
+  if(!String(d.title||'').trim())o.push('judul kosong');
+  if(!okLL(d))o.push('koordinat tidak valid');
+  if(!d.date)o.push('tanggal kosong');
+  if(!String(d.addr||'').trim())o.push('alamat kosong');
+  return o;
+}
 function setView(v){
   VIEWS.forEach(k=>$('v-'+k).hidden=k!==v);
   document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
@@ -938,6 +1060,25 @@ function renderDash(){
   $('recent').innerHTML=h.length?h.slice(-6).reverse().map(e=>'<div class="li"><div><b>'+esc(e.ti||e.n)+'</b><small>'+(isNaN(e.la)?'-':e.la.toFixed(5)+', '+e.lo.toFixed(5))+'</small></div><time>'+ago(e.t)+'</time></div>').join('')
     :'<p class="empty-t">Belum ada unduhan. Hasil yang Anda unduh akan tercatat di sini.</p>';
 }
+function exportGalleryCsv(){
+  if(!photos.length){toast('Belum ada foto untuk diekspor.');return}
+  const headers=['No','Nama file','Judul lokasi','Alamat','Catatan','Tanggal','Jam','Latitude','Longitude','Status GPS','Status database'];
+  const cell=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const rows=photos.map((p,i)=>{
+    const d=p.d||{};
+    return [i+1,p.name,d.title,d.addr,d.note,d.date,d.time,d.lat,d.lng,
+      okLL(d)?'Valid':'Belum valid',p.dbId?'Tersimpan':'Belum tersimpan'];
+  });
+  const csv='\uFEFF'+[headers,...rows].map(r=>r.map(cell).join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const stamp=new Date().toISOString().slice(0,10);
+  saveBlob(blob,'GRID-data-foto-'+stamp+'.csv');
+  toast('Data foto berhasil diekspor ke CSV.');
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-act="exportcsv"]'))exportGalleryCsv();
+});
+
 function galFiltered(){
   const q=(($('galSearch')&&$('galSearch').value)||'').trim().toLowerCase();
   const date=(($('galDate')&&$('galDate').value)||'');
@@ -985,6 +1126,9 @@ function dbCfg(){try{return JSON.parse(localStorage.getItem(DBK))||{}}catch(e){r
 function dbStat(t,bad){const e=$('dbStat');e.textContent=t;e.style.color=bad?'#d64545':'var(--ac)'}
 async function dbCall(action,extra){
   const c=dbCfg();if(!c.url||!c.kode)throw new Error('Isi link dan kode rahasia di menu Database, lalu simpan pengaturan.');
+  let parsedUrl;
+  try{parsedUrl=new URL(c.url)}catch(e){throw new Error('Link Apps Script tidak valid.')}
+  if(parsedUrl.protocol!=='https:'||!/script\.google\.com$/.test(parsedUrl.hostname))throw new Error('Gunakan link Web App Google Apps Script resmi (https://script.google.com/...).');
   let j;
   try{
     const r=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({kode:c.kode,action},extra||{}))});
