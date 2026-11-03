@@ -6,6 +6,7 @@ const FOLDER_ID = '1BAe5KuFbZhmVpGUogQ4qlNeVkVdCXNzy';
 const KODE = 'polsek123'; // ganti kalau perlu, lalu deploy ulang
 const INDEX = 'index.json';
 const ACCOUNTS = 'accounts.json';
+const ACCESS = 'access.json'; // daftar kode akses pengguna (dibaca semua komputer)
 const BACKUP_PREFIX = 'backup-grid-';
 
 function out_(o) {
@@ -49,6 +50,43 @@ function hashPassword_(password) {
   }).join('');
 }
 
+function readAccess_() {
+  const it = folder_().getFilesByName(ACCESS);
+  if (!it.hasNext()) return [];
+  try { return JSON.parse(it.next().getBlob().getDataAsString()) || []; }
+  catch (e) { return []; }
+}
+function writeAccess_(arr) {
+  const it = folder_().getFilesByName(ACCESS), json = JSON.stringify(arr);
+  if (it.hasNext()) it.next().setContent(json);
+  else folder_().createFile(ACCESS, json, 'application/json');
+}
+// Login & ubah kode sendiri: tanpa kode rahasia database, dibatasi percobaan salah.
+function accessPublic_(r) {
+  const cache = CacheService.getScriptCache();
+  const fails = Number(cache.get('af') || 0);
+  if (fails >= 10) return out_({ ok: false, locked: true, error: 'Terlalu banyak percobaan salah. Coba lagi beberapa menit.' });
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const users = readAccess_(), h = String(r.hash || '');
+    const u = /^[a-f0-9]{64}$/.test(h) ? users.find(function (x) { return x.hash === h && x.aktif !== false; }) : null;
+    if (!u) { cache.put('af', String(fails + 1), 600); return out_({ ok: false, invalid: true, error: 'Kode salah.' }); }
+    if (r.action === 'accessSelf') {
+      const nh = String(r.newHash || '');
+      if (nh) {
+        if (!/^[a-f0-9]{64}$/.test(nh) || users.some(function (x) { return x !== u && x.hash === nh; })) {
+          return out_({ ok: false, error: 'Kode baru tidak valid atau sudah dipakai.' });
+        }
+        u.hash = nh; u.kode = String(r.newKode || '').slice(0, 64);
+      }
+      if (r.nama && String(r.nama).trim()) u.nama = String(r.nama).trim().slice(0, 60);
+      writeAccess_(users);
+    }
+    return out_({ ok: true, user: { id: u.id, nama: u.nama, peran: u.peran } });
+  } finally { lock.releaseLock(); }
+}
+
 // Jalankan fungsi ini sekali dari editor untuk memberi izin akses Drive.
 function izin() { Logger.log(folder_().getName()); }
 
@@ -59,6 +97,9 @@ function doPost(e) {
   try { r = JSON.parse(e && e.postData && e.postData.contents || '{}'); }
   catch (x) { return out_({ ok: false, error: 'Permintaan tidak valid' }); }
   if (!r || typeof r !== 'object' || Array.isArray(r)) return out_({ ok: false, error: 'Format permintaan tidak valid.' });
+  if (r.action === 'accessLogin' || r.action === 'accessSelf') {
+    try { return accessPublic_(r); } catch (e) { return out_({ ok: false, error: String(e) }); }
+  }
   if (r.kode !== KODE) return out_({ ok: false, error: 'Kode rahasia salah' });
 
   const lock = LockService.getScriptLock();
@@ -173,6 +214,23 @@ function doPost(e) {
         user.updatedAt = new Date().toISOString();
         writeAccounts_(users);
         return out_({ ok: true, pesan: 'Kata sandi berhasil diubah.' });
+      }
+      case 'accessList':
+        return out_({ ok: true, data: readAccess_() });
+      case 'accessSave': {
+        const arr = Array.isArray(r.users) ? r.users : null;
+        if (!arr || arr.length > 300) return out_({ ok: false, error: 'Daftar pengguna tidak valid.' });
+        const clean = [];
+        arr.forEach(function (u) {
+          if (!u || !u.nama || !/^[a-f0-9]{64}$/.test(String(u.hash || ''))) return;
+          clean.push({
+            id: String(u.id || '').slice(0, 40), nama: String(u.nama).slice(0, 60),
+            peran: ['admin', 'petugas', 'viewer'].indexOf(u.peran) >= 0 ? u.peran : 'petugas',
+            aktif: u.aktif !== false, hash: u.hash, kode: u.kode ? String(u.kode).slice(0, 64) : ''
+          });
+        });
+        writeAccess_(clean);
+        return out_({ ok: true, jumlah: clean.length });
       }
       case 'list':
         return out_({ ok: true, data: idx });
