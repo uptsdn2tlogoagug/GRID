@@ -429,6 +429,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
   <h1>Masuk</h1><p>Masukkan kode akses untuk membuka aplikasi.</p>
   <label for="loginCode">Kode akses</label>
   <div class="lrow"><input id="loginCode" type="password" autocomplete="off" required><button class="btn" type="button" id="loginShow" style="width:auto;padding:0 14px">Tampilkan</button></div>
+  <div id="loginUrlRow" hidden style="margin:10px 0"><label for="loginUrl" style="font-size:.8rem;color:var(--mut)">Link database (cukup sekali di komputer ini)</label><input id="loginUrl" type="text" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:11px;background:var(--fld);color:var(--tx)"></div>
   <label class="chk"><input id="loginKeep" type="checkbox" checked> Ingat di perangkat ini</label>
   <button class="btn pri" type="submit">Masuk</button>
   <p id="loginErr" role="alert"></p>
@@ -604,6 +605,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
   <div class="card" id="uCard" style="margin-bottom:16px">
     <div class="ct"><h2 id="uTitle">Kode akses pengguna</h2><small id="uN"></small></div>
     <p class="hint" id="uHint" style="margin:0 0 6px">Kode yang dipakai untuk masuk ke GRID. Admin utama bersifat tetap. Daftar ini tersimpan di browser ini; pindahkan ke perangkat lain lewat Ekspor dan Impor.</p>
+    <p id="uSync" class="hint" style="margin:0 0 8px"></p>
     <div id="uList"><p class="empty-t">Memuat…</p></div>
     <div id="uAdd" class="urow uaddrow" hidden>
       <div class="uf"><input id="uNama" type="text" placeholder="Nama pengguna baru" autocomplete="off"></div>
@@ -611,7 +613,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
       <select id="uPeran" aria-label="Peran"><option value="petugas">Petugas</option><option value="admin">Admin</option><option value="viewer">Viewer</option></select>
       <button class="btn pri" type="button" id="uAddBtn">Tambah pengguna</button>
     </div>
-    <div id="uTools" class="btns" hidden><button class="btn" type="button" id="uExp">Ekspor daftar</button><button class="btn" type="button" onclick="$('uImpF').click()">Impor daftar</button><input id="uImpF" type="file" accept="application/json" hidden></div>
+    <div id="uTools" class="btns" hidden><button class="btn pri" type="button" id="uSyncBtn">Sinkronkan ke database sekarang</button><button class="btn" type="button" id="uExp">Ekspor daftar</button><button class="btn" type="button" onclick="$('uImpF').click()">Impor daftar</button><input id="uImpF" type="file" accept="application/json" hidden></div>
   </div>
   <div class="dgrid">
     <div class="card s6" id="acctCreateCard">
@@ -1581,14 +1583,23 @@ $('loginForm').addEventListener('submit',async e=>{
   if(now<lockUntil){er.textContent='Terlalu banyak percobaan. Coba lagi dalam '+Math.ceil((lockUntil-now)/1000)+' detik.';return}
   if(typeof crypto==='undefined'||!crypto.subtle){er.textContent='Browser tidak mendukung. Buka lewat alamat https.';return}
   const h=await sha($('loginCode').value.replace(/\s+/g,''));
-  if(GRID_AUTH.hs.indexOf(h)>=0){
-    fails=0;er.textContent='';
+  const okLogin=()=>{fails=0;er.textContent='';
     try{($('loginKeep').checked?localStorage:sessionStorage).setItem(LK,h)}catch(x){}
-    $('loginCode').value='';unlock();window.onLogin&&onLogin(h);
-  }else{
-    fails++;er.textContent='Kode salah.';$('loginCode').select();
-    if(fails>=3){lockUntil=Date.now()+30000;fails=0;er.textContent='Kode salah 3 kali. Tunggu 30 detik.'}
+    $('loginCode').value='';unlock();window.onLogin&&onLogin(h)};
+  if(GRID_AUTH.hs.indexOf(h)>=0){okLogin();return}
+  /* tidak dikenal di komputer ini: periksa ke database bersama */
+  const typed=$('loginUrl').value.trim(),url=typed||accUrl();
+  if(!url){$('loginUrlRow').hidden=false;er.textContent='Kode tidak dikenal di komputer ini. Isi link database di atas (sekali saja), lalu masuk lagi.';$('loginUrl').focus();return}
+  er.textContent='Memeriksa akun…';
+  const r=await accRemote(url,{action:'accessLogin',hash:h});
+  if(r.ok&&r.user){
+    mergeRemoteUser(r.user,h);try{localStorage.setItem('grid-accurl-v1',url)}catch(x){}okLogin();return;
   }
+  if(!r.invalid)$('loginUrlRow').hidden=false;
+  if(r.locked){er.textContent=r.error;return}
+  fails++;er.textContent=r.invalid?'Kode salah, atau akun ini belum disinkronkan oleh admin.':(/rahasia|tidak dikenal/i.test(r.error||'')?'Database belum diperbarui. Admin perlu deploy ulang Apps Script (versi terbaru).':(r.error||'Gagal memeriksa akun.'));
+  if(r.invalid)$('loginCode').select();
+  if(fails>=3){lockUntil=Date.now()+30000;fails=0;er.textContent='Gagal 3 kali. Tunggu 30 detik.'}
 });
 $('loginShow').onclick=()=>{const i=$('loginCode');i.type=i.type==='password'?'text':'password';$('loginShow').textContent=i.type==='password'?'Tampilkan':'Sembunyikan'};
 document.addEventListener('click',e=>{
@@ -1648,7 +1659,7 @@ function showWelcome(u,prev){
 /* daftar kode akses */
 function renderUsers(){
   const box=$('uList');if(!box)return;
-  const adm=isAdm();applyRole();$('uAdd').hidden=!adm;$('uTools').hidden=!adm;
+  const adm=isAdm();applyRole();if(adm&&!window._pulled){window._pulled=1;pullAccess()}$('uAdd').hidden=!adm;$('uTools').hidden=!adm;
   $('uTitle').textContent=adm?'Kode akses pengguna':'Profil saya';
   $('uHint').textContent=adm?'Kode yang dipakai untuk masuk ke GRID. Admin utama bersifat tetap. Daftar ini tersimpan di browser ini; pindahkan ke perangkat lain lewat Ekspor dan Impor.':'Anda masuk sebagai '+(me?ROLE[me.peran]:'')+'. Anda hanya dapat mengatur profil dan kode akses Anda sendiri.';
   if(!adm){
@@ -1688,6 +1699,12 @@ $('uList').addEventListener('click',async e=>{
       const nama=$('pName').value.trim(),old=$('pOld').value.replace(/\s+/g,''),nw=$('pNew').value.trim(),nw2=$('pNew2').value.trim();
       if(!nama)throw new Error('Nama wajib diisi.');
       if(await sha(old)!==me.hash)throw new Error('Kode saat ini salah.');
+      const oldH=me.hash,url=accUrl();let nh='';
+      if(nw&&nw===nw2&&nw.length>=4)nh=await sha(nw.replace(/\s+/g,''));
+      if(url){
+        const rr=await accRemote(url,{action:'accessSelf',hash:oldH,nama,newHash:nh||undefined,newKode:nh?nw:undefined});
+        if(!rr.ok&&!rr.invalid)throw new Error(rr.error||'Gagal menyimpan ke database.');
+      }
       if(nw||nw2){
         if(nw!==nw2)throw new Error('Ulangi kode baru dengan sama.');
         await applyUser(me,nama,nw,me.peran,true);
@@ -1699,8 +1716,8 @@ $('uList').addEventListener('click',async e=>{
   const row=b.closest('.urow'),u=GRID_AUTH.list.find(x=>x.id===row.dataset.id);if(!u)return;
   if(b.dataset.u==='eye'){const i=row.querySelector('.u-k');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'Lihat':'Sembunyi';return}
   try{
-    if(b.dataset.u==='del'){if(!confirm('Hapus pengguna "'+u.nama+'"? Kodenya tidak bisa dipakai lagi.'))return;GRID_AUTH.list=GRID_AUTH.list.filter(x=>x!==u);GRID_AUTH.save();toast('Pengguna dihapus.')}
-    else{await applyUser(u,row.querySelector('.u-n').value,row.querySelector('.u-k').value.trim(),row.querySelector('.u-r').value,row.querySelector('.u-on').checked);GRID_AUTH.save();toast('Perubahan "'+u.nama+'" disimpan.')}
+    if(b.dataset.u==='del'){if(!confirm('Hapus pengguna "'+u.nama+'"? Kodenya tidak bisa dipakai lagi.'))return;GRID_AUTH.list=GRID_AUTH.list.filter(x=>x!==u);GRID_AUTH.save();if(await pushAccess())toast('Pengguna dihapus di semua komputer.')}
+    else{await applyUser(u,row.querySelector('.u-n').value,row.querySelector('.u-k').value.trim(),row.querySelector('.u-r').value,row.querySelector('.u-on').checked);GRID_AUTH.save();if(await pushAccess())toast('Perubahan "'+u.nama+'" disimpan di semua komputer.')}
     me=GRID_AUTH.byHash(curHash())||me;renderWho();renderUsers();
   }catch(err){toast(err.message)}
 });
@@ -1709,7 +1726,7 @@ $('uAddBtn').onclick=async()=>{
     if(!isAdm())throw new Error('Hanya admin yang dapat menambah pengguna.');
     const u={id:'u'+Date.now().toString(36),aktif:true};
     await applyUser(u,$('uNama').value,$('uKode').value.trim(),$('uPeran').value,true);
-    GRID_AUTH.list.push(u);GRID_AUTH.save();$('uNama').value=$('uKode').value='';renderUsers();toast('Pengguna "'+u.nama+'" ditambahkan.');
+    GRID_AUTH.list.push(u);GRID_AUTH.save();$('uNama').value=$('uKode').value='';renderUsers();if(await pushAccess())toast('Pengguna "'+u.nama+'" ditambahkan dan berlaku di semua komputer.');
   }catch(err){toast(err.message)}
 };
 $('uExp').onclick=()=>{saveBlob(new Blob([JSON.stringify(GRID_AUTH.list.filter(u=>!u.tetap),null,1)],{type:'application/json'}),'GRID-kode-akses.json');toast('Berkas berisi kode asli. Simpan dengan aman.')};
@@ -1722,7 +1739,7 @@ $('uImpF').onchange=async e=>{
       const u={id:x.id||'u'+Date.now().toString(36)+n,aktif:x.aktif!==false,hash:x.hash,kode:x.kode};
       await applyUser(u,String(x.nama),x.kode||'',ROLE[x.peran]?x.peran:'petugas',u.aktif);GRID_AUTH.list.push(u);n++;
     }
-    GRID_AUTH.save();renderUsers();toast(n+' pengguna diimpor.');
+    GRID_AUTH.save();renderUsers();await pushAccess();toast(n+' pengguna diimpor.');
   }catch(err){toast('Berkas tidak valid.')}
 };
 initMe();
@@ -1818,6 +1835,61 @@ document.addEventListener('click',async e=>{
   if(!confirm('Hapus foto ini dari database?'))return;
   try{await dbCall('delete',{id:b.dataset.id});toast('Foto dihapus.');await loadDbGal()}catch(err){toast(err.message)}
 });
+</script>
+<script>
+/* ---------- akun berlaku di semua komputer (disimpan di database Apps Script) ---------- */
+const GRID_DB_URL=''; /* opsional: tempel link /exec di sini agar semua komputer otomatis tahu databasenya */
+const accUrl=()=>{try{return localStorage.getItem('grid-accurl-v1')||GRID_DB_URL||dbCfg().url||''}catch(e){return GRID_DB_URL||''}};
+const urlOk=u=>{try{const x=new URL(u);return x.protocol==='https:'&&/(^|\.)script\.google\.com$/.test(x.hostname)}catch(e){return false}};
+async function accRemote(url,payload){
+  if(!urlOk(url))return{ok:false,error:'Link database tidak valid.'};
+  try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});return await r.json()}
+  catch(e){return{ok:false,net:true,error:'Tidak bisa terhubung ke database. Periksa internet dan link.'}}
+}
+function mergeRemoteUser(u,h){
+  const i=GRID_AUTH.list.findIndex(x=>x.hash===h||x.id===u.id),e={id:u.id,nama:u.nama,peran:u.peran,hash:h,aktif:true};
+  if(i>=0)GRID_AUTH.list[i]=Object.assign({},GRID_AUTH.list[i],e);else GRID_AUTH.list.push(e);
+  GRID_AUTH.save();
+}
+const setSync=(m,bad)=>{const e=$('uSync');if(e){e.textContent=m;e.style.color=bad?'#d64524':'var(--mut)'}};
+async function pushAccess(){
+  const c=dbCfg();
+  if(!c.url||!c.kode){setSync('Database belum diisi di menu Database. Akun hanya tersimpan di komputer ini.',1);toast('Akun tersimpan di komputer ini saja. Isi link & kode di menu Database.');return false}
+  try{
+    const pg=await dbCall('ping');
+    if(!pg.versi||pg.versi<2)throw new Error('Apps Script belum versi terbaru. Tempel code.js terbaru, lalu Deploy → Manage deployments → New version.');
+    const r=await dbCall('accessSave',{users:GRID_AUTH.list.filter(u=>!u.tetap).map(u=>({id:u.id,nama:u.nama,peran:u.peran,aktif:u.aktif!==false,hash:u.hash,kode:u.kode||''}))});
+    GRID_AUTH.list.forEach(u=>{if(!u.tetap)u.synced=true});GRID_AUTH.save();
+    try{localStorage.setItem('grid-accurl-v1',c.url)}catch(e){}
+    setSync('Tersinkron: '+r.jumlah+' pengguna tersimpan di database ('+new Date().toLocaleTimeString('id-ID')+').');return true;
+  }catch(e){setSync('Gagal sinkron: '+e.message,1);toast('Gagal menyimpan akun ke database: '+e.message);return false}
+}
+async function pullAccess(){
+  const c=dbCfg();
+  if(!c.url||!c.kode){setSync('Database belum diisi di menu Database. Akun hanya tersimpan di komputer ini.',1);return}
+  setSync('Menyinkronkan…');
+  try{
+    const pg=await dbCall('ping');
+    if(!pg.versi||pg.versi<2)throw new Error('Apps Script belum versi terbaru. Tempel code.js terbaru, lalu Deploy → Manage deployments → New version.');
+    const j=await dbCall('accessList'),adm=GRID_AUTH.list.find(u=>u.tetap),have=new Set(j.data.map(u=>u.hash));
+    const unsynced=GRID_AUTH.list.filter(u=>!u.tetap&&!u.synced&&!have.has(u.hash));
+    GRID_AUTH.list=[adm].concat(j.data.map(u=>Object.assign({},u,{synced:true})),unsynced);GRID_AUTH.save();
+    me=GRID_AUTH.byHash(curHash())||me;
+    if(unsynced.length||!j.data.length){await pushAccess()}else setSync('Tersinkron: '+j.data.length+' pengguna di database ('+new Date().toLocaleTimeString('id-ID')+').');
+    renderWho();renderUsers();
+  }catch(e){setSync('Gagal sinkron: '+e.message,1)}
+}
+document.addEventListener('click',e=>{if(e.target.id==='uSyncBtn'&&isAdm())pullAccess()});
+/* verifikasi akun yang diingat; jika sudah dihapus/dinonaktifkan admin, keluar otomatis */
+(async()=>{
+  const h=curHash(),u=GRID_AUTH.byHash(h),url=accUrl();
+  if(!u||u.tetap||!url)return;
+  const r=await accRemote(url,{action:'accessLogin',hash:h});
+  if(r.invalid){
+    GRID_AUTH.list=GRID_AUTH.list.filter(x=>x!==u);GRID_AUTH.save();
+    try{localStorage.removeItem(GRID_AUTH.k);sessionStorage.removeItem(GRID_AUTH.k)}catch(e){}location.reload();
+  }else if(r.ok&&r.user){u.nama=r.user.nama;u.peran=r.user.peran;GRID_AUTH.save();me=u;renderWho();renderUsers()}
+})();
 </script>
 </body>
 </html>
