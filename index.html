@@ -1840,7 +1840,7 @@ document.addEventListener('click',async e=>{
 </script>
 <script>
 /* ---------- akun berlaku di semua komputer (disimpan di database Apps Script) ---------- */
-const GRID_DB_URL=''; /* opsional: tempel link /exec di sini agar semua komputer otomatis tahu databasenya */
+const GRID_DB_URL='https://script.google.com/macros/s/AKfycbzcR8jl_0JqYZ-HQAdVWdcfql7BauomJqT-V0QISoJqRMlz5yjJtQmP0Q5d320JhuHN/exec'; /* database bersama GRID */
 const accUrl=()=>{try{return localStorage.getItem('grid-accurl-v1')||GRID_DB_URL||dbCfg().url||''}catch(e){return GRID_DB_URL||''}};
 const urlOk=u=>{try{const x=new URL(u);return x.protocol==='https:'&&/(^|\.)script\.google\.com$/.test(x.hostname)}catch(e){return false}};
 async function accRemote(url,payload){
