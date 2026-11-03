@@ -136,6 +136,10 @@ main{max-width:none;padding:0}
 .li b{display:block;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li small{color:var(--mut)}
 .li time{color:var(--mut);font-size:.76rem;white-space:nowrap}
+.li>select{width:auto;flex:0 0 150px;min-width:0}
+.li>.btn{width:auto;flex:0 0 auto;white-space:nowrap}
+.li small{display:block;white-space:normal;overflow-wrap:anywhere}
+@media (max-width:640px){.li{flex-wrap:wrap}.li>div{flex:1 1 100%}.li>select{flex:1 1 140px}}
 .warn{color:var(--ac)}
 .empty-t{color:var(--mut);margin:4px 0 0}
 .acts{display:grid;gap:8px}
@@ -166,7 +170,7 @@ input[type=password]:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix
 @media (min-width:901px){#toast{bottom:28px}}
 </style>
 <style>.sidefoot{margin-top:0}.side .nv[data-act="refresh"]{margin-top:auto}.side .nv[data-act="logout"]{margin-top:0}.mrf{display:none}@media (max-width:900px){.mrf{display:inline-flex}}</style>
-<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0f2a22">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#07161d">
 <style>#offBar{display:none;background:var(--ac);color:var(--act);padding:10px 14px;border-radius:12px;margin-bottom:14px;font-weight:500}.off #offBar{display:block}</style>
 <script>
 var GRID_AUTH={k:'grid-auth-v1',hs:['213eda2de4c55b2f4f2dd2b69cab3778bc2b88edc4ccc2682d39146040a34d21','eefdc508cd4fe4d7b8f93c0fcf3be4fee8ddfdb657d4a369990c791656ce846b','4f58424983d2592c1bcded043b261969eddb8d497616d76e3d7fa06b95fbaf7b','aa7156ec384e320b428b97e5baa021372114067b79a40c638fc88cf3920630e9']};
@@ -299,6 +303,73 @@ details.card[open]>summary{padding-bottom:14px;border-bottom:1px solid var(--bd)
 }
 </style>
 
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style id="grid-skin">
+/* GRID skin: radar & peta topografi. Satu momen utama = pemindai radar di layar masuk, kontur bergerak di sidebar. */
+:root{--bg:#ecf1f0;--card:#fff;--tx:#0b1f27;--mut:#5b7078;--bd:#d9e3e2;--fld:#f3f7f6;--ac:#e03b17;--ac2:#f57a1a;--act:#fff;--sb:#07161d;--cy:#19d3c5;--ease:cubic-bezier(.2,.8,.2,1);--hd:"Bricolage Grotesque","Schibsted Grotesk",system-ui,sans-serif;--sh:0 1px 2px rgba(7,22,29,.04),0 14px 36px -12px rgba(7,22,29,.14)}
+@media(prefers-color-scheme:dark){:root{--bg:#06121a;--card:#0d212b;--tx:#e5f2f1;--mut:#8fa9b0;--bd:#1c3641;--fld:#09181f;--ac:#ff6a45;--ac2:#ffa63a;--act:#1a0a03;--sb:#040d12;--sh:0 14px 40px -14px rgba(0,0,0,.6)}}
+body{font-family:"Hanken Grotesk","Schibsted Grotesk",system-ui,sans-serif;background:radial-gradient(900px 520px at 88% -8%,color-mix(in srgb,var(--cy) 14%,transparent),transparent 70%),var(--bg) fixed}
+.vh h1,.kpi b,.brand b,.lbrand b,.lcard h1,.ct h2,.card h2{font-family:var(--hd)}
+.vh h1{font-weight:800;letter-spacing:-.04em}
+.kpi b{font-weight:800;letter-spacing:-.05em}
+.card,.kpis{border-radius:22px}
+/* sidebar + kontur */
+.side{background:var(--sb);overflow:hidden;isolation:isolate}
+.side::before,#login::after{content:"";position:absolute;inset:-25%;z-index:-1;pointer-events:none;background:repeating-radial-gradient(circle at 22% 12%,transparent 0 26px,rgba(25,211,197,.1) 26px 27px),repeating-radial-gradient(circle at 85% 80%,transparent 0 34px,rgba(255,255,255,.055) 34px 35px);animation:topo 38s ease-in-out infinite alternate}
+@keyframes topo{to{transform:translate(6%,4%) rotate(5deg) scale(1.1)}}
+.brand .logo,.lbrand .logo{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;position:relative}
+.brand .logo::after,.lbrand .logo::after{content:"";position:absolute;inset:0;border-radius:inherit;border:2px solid var(--cy);animation:ping 2.8s var(--ease) infinite;pointer-events:none}
+@keyframes ping{0%{transform:scale(1);opacity:.9}80%,100%{transform:scale(2.1);opacity:0}}
+.nv{position:relative;transition:background .25s,transform .3s var(--ease),color .25s,box-shadow .3s}
+.nv:hover{background:rgba(255,255,255,.08);transform:translateX(5px)}
+.nv svg{transition:transform .35s var(--ease)}
+.nv:hover svg{transform:scale(1.14) rotate(-7deg)}
+.nv.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--act);box-shadow:0 10px 24px -10px var(--ac)}
+.side nav .nv{animation:navIn .7s var(--ease) both}
+.side nav .nv:nth-child(2){animation-delay:.07s}.side nav .nv:nth-child(3){animation-delay:.14s}.side nav .nv:nth-child(4){animation-delay:.21s}.side nav .nv:nth-child(5){animation-delay:.28s}
+@keyframes navIn{from{opacity:0;transform:translateX(-18px)}}
+/* pindah halaman */
+.view:not([hidden]){animation:viewIn .55s var(--ease) both}
+@keyframes viewIn{from{opacity:0;transform:translateY(16px)}}
+.kpi{transition:background .3s}.kpi:hover{background:color-mix(in srgb,var(--cy) 7%,transparent)}
+/* tombol & isian */
+.btn{border-radius:13px;transition:transform .22s var(--ease),box-shadow .22s,border-color .2s,background .2s}
+.btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 20px -12px rgba(7,22,29,.55)}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn.pri{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--act);box-shadow:0 12px 26px -14px var(--ac)}
+.btn.pri::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.4) 50%,transparent 62%);transform:translateX(-130%);pointer-events:none}
+.btn.pri:hover::after{transform:translateX(130%);transition:transform .8s var(--ease)}
+input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:focus{border-color:var(--cy);box-shadow:0 0 0 4px color-mix(in srgb,var(--cy) 24%,transparent)}
+.chip{transition:transform .2s var(--ease),background .2s,border-color .2s}.chip:hover{transform:translateY(-2px)}
+/* daftar foto */
+#thumbs button{transition:transform .3s var(--ease),border-color .2s,box-shadow .3s}
+#thumbs button:hover{transform:translateY(-3px)}
+#thumbs button.on{border-color:var(--ac);transform:scale(1.09);box-shadow:0 10px 20px -8px var(--ac)}
+.thb{transition:transform .2s var(--ease),border-color .2s,color .2s}.thb:active:not(:disabled){transform:scale(.9)}
+/* area pratinjau: bingkai bidik kamera + garis pindai */
+.stage{border:0;border-radius:18px}
+.stage.empty{min-height:270px}
+.stage.empty::before{content:"";position:absolute;inset:16px;pointer-events:none;background:linear-gradient(var(--ac),var(--ac)) 0 0/26px 3px no-repeat,linear-gradient(var(--ac),var(--ac)) 0 0/3px 26px no-repeat,linear-gradient(var(--ac),var(--ac)) 100% 0/26px 3px no-repeat,linear-gradient(var(--ac),var(--ac)) 100% 0/3px 26px no-repeat,linear-gradient(var(--ac),var(--ac)) 0 100%/26px 3px no-repeat,linear-gradient(var(--ac),var(--ac)) 0 100%/3px 26px no-repeat,linear-gradient(var(--ac),var(--ac)) 100% 100%/26px 3px no-repeat,linear-gradient(var(--ac),var(--ac)) 100% 100%/3px 26px no-repeat}
+.stage.empty::after{content:"";position:absolute;left:20px;right:20px;top:20px;height:2px;pointer-events:none;background:linear-gradient(90deg,transparent,var(--cy),transparent);box-shadow:0 0 14px var(--cy);animation:scan 3.4s ease-in-out infinite alternate}
+@keyframes scan{to{top:calc(100% - 22px)}}
+/* galeri */
+.gi{transition:transform .35s var(--ease),box-shadow .35s}
+.gi:hover{transform:translateY(-6px);box-shadow:0 22px 40px -18px rgba(7,22,29,.5)}
+.gi img{transition:transform .8s var(--ease)}.gi:hover img{transform:scale(1.06)}
+.li{transition:background .2s}
+/* toast */
+#toast{border-radius:14px;border:1px solid rgba(25,211,197,.4);animation:toastIn .45s var(--ease)}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,18px)}}
+/* layar masuk: pemindai radar */
+#login{isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 20% 0,#0d3a44 0,var(--sb) 60%)}
+#login::before{content:"";position:absolute;left:50%;top:50%;width:150vmax;height:150vmax;margin:-75vmax 0 0 -75vmax;z-index:-1;pointer-events:none;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 292deg,rgba(25,211,197,.2) 352deg,rgba(25,211,197,.55) 360deg);-webkit-mask-image:radial-gradient(circle closest-side,#000 8%,transparent 100%);mask-image:radial-gradient(circle closest-side,#000 8%,transparent 100%);animation:sweep 7s linear infinite}
+@keyframes sweep{to{transform:rotate(360deg)}}
+.lcard{border-radius:28px;background:color-mix(in srgb,var(--card) 92%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);animation:rise .9s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(28px) scale(.96)}}
+/* HP */
+@media(max-width:900px){.tabs{background:color-mix(in srgb,var(--sb) 94%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}.tabs .nv.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--act);box-shadow:0 8px 18px -8px var(--ac)}.tabs .nv:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
 <section id="login" aria-label="Masuk">
@@ -1214,7 +1285,7 @@ async function renderAccounts() {
     const users = j.data || [];
     $('acctN').textContent = users.length + ' akun';
     list.innerHTML = users.length ? users.map(function(u) {
-      return '<div class="li"><div><b>'+esc(u.username)+'</b><small>Peran: '+esc(u.role || 'petugas')+' · Dibuat: '+esc(u.createdAt || '-')+'</small></div><select data-role-user="'+esc(u.username)+'" aria-label="Ubah peran '+esc(u.username)+'"><option value="petugas" '+((u.role||'petugas')==='petugas'?'selected':'')+'>Petugas</option><option value="admin" '+(u.role==='admin'?'selected':'')+'>Admin</option><option value="viewer" '+(u.role==='viewer'?'selected':'')+'>Viewer</option></select><button class="btn" type="button" data-act="acctrole" data-user="'+esc(u.username)+'">Simpan peran</button></div>';
+      return '<div class="li"><div><b>'+esc(u.username)+'</b><small>Peran: '+esc(u.role || 'petugas')+' · Dibuat: '+esc(u.createdAt ? new Date(u.createdAt).toLocaleString('id-ID') : '-')+'</small></div><select data-role-user="'+esc(u.username)+'" aria-label="Ubah peran '+esc(u.username)+'"><option value="petugas" '+((u.role||'petugas')==='petugas'?'selected':'')+'>Petugas</option><option value="admin" '+(u.role==='admin'?'selected':'')+'>Admin</option><option value="viewer" '+(u.role==='viewer'?'selected':'')+'>Viewer</option></select><button class="btn" type="button" data-act="acctrole" data-user="'+esc(u.username)+'">Simpan peran</button></div>';
     }).join('') : '<p class="empty-t">Belum ada akun.</p>';
     $('acctStat').textContent = 'Daftar akun berhasil dimuat.';
   } catch (e) {
