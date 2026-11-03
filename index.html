@@ -433,6 +433,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
   <label class="chk"><input id="loginKeep" type="checkbox" checked> Ingat di perangkat ini</label>
   <button class="btn pri" type="submit">Masuk</button>
   <p id="loginErr" role="alert"></p>
+  <p id="verTag" style="text-align:center;font-size:.72rem;margin:12px 0 0;color:var(--mut)">Versi akun-bersama 5</p>
   <p style="text-align:center;font-size:.8rem;margin:14px 0 0;color:var(--mut)">Pengembang <strong style="color:var(--ac)">@masluki.id</strong></p>
 </form>
 </section>
@@ -1578,8 +1579,9 @@ const LK=GRID_AUTH.k;
 async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('grid:'+t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 let fails=0,lockUntil=0;
 function unlock(){document.documentElement.classList.remove('locked');setTimeout(()=>{try{dmap.invalidateSize();map.invalidateSize()}catch(e){}renderDash()},120)}
-$('loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();const er=$('loginErr'),now=Date.now();
+$('loginForm').addEventListener('submit',e=>{e.preventDefault();doLogin().catch(err=>{$('loginErr').textContent='Terjadi kesalahan: '+(err&&err.message||err)})});
+async function doLogin(){
+  const er=$('loginErr'),now=Date.now();
   if(now<lockUntil){er.textContent='Terlalu banyak percobaan. Coba lagi dalam '+Math.ceil((lockUntil-now)/1000)+' detik.';return}
   if(typeof crypto==='undefined'||!crypto.subtle){er.textContent='Browser tidak mendukung. Buka lewat alamat https.';return}
   const h=await sha($('loginCode').value.replace(/\s+/g,''));
@@ -1600,7 +1602,7 @@ $('loginForm').addEventListener('submit',async e=>{
   fails++;er.textContent=r.invalid?'Kode salah, atau akun ini belum disinkronkan oleh admin.':(/rahasia|tidak dikenal/i.test(r.error||'')?'Database belum diperbarui. Admin perlu deploy ulang Apps Script (versi terbaru).':(r.error||'Gagal memeriksa akun.'));
   if(r.invalid)$('loginCode').select();
   if(fails>=3){lockUntil=Date.now()+30000;fails=0;er.textContent='Gagal 3 kali. Tunggu 30 detik.'}
-});
+}
 $('loginShow').onclick=()=>{const i=$('loginCode');i.type=i.type==='password'?'text':'password';$('loginShow').textContent=i.type==='password'?'Tampilkan':'Sembunyikan'};
 document.addEventListener('click',e=>{
   if(!e.target.closest('[data-act="logout"]'))return;
