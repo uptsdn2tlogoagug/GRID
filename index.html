@@ -440,6 +440,17 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
 }
 @media(prefers-reduced-motion:reduce){#miniPrev.flash{animation:none}}
 </style>
+<style id="fastCss2">
+#locBar{height:8px;border-radius:99px;background:var(--fld);border:1px solid var(--bd);overflow:hidden;margin-top:8px}
+#locFill{height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .25s}
+#locInfo{font-size:.84rem;font-weight:700;margin-top:6px}
+#locInfo.done{color:#22c55e}
+#thumbs button.unset{border-color:#ef4444;box-shadow:0 0 0 1px #ef444455}
+#thumbs button.unset.on{border-color:var(--ac);box-shadow:0 0 0 2px #ef4444}
+#thumbs .lc{position:absolute;right:3px;bottom:3px;font-size:.62rem;font-weight:800;line-height:1.35;border-radius:6px;padding:0 5px;color:#fff;background:#16a34a}
+#thumbs button.unset .lc{background:#dc2626}
+#qSame kbd,#qNext kbd{margin-left:4px}
+</style>
 </head>
 <body>
 <section id="login" aria-label="Masuk">
@@ -494,6 +505,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
     <div class="thnav"><button type="button" class="thb" id="thPrev" title="Foto sebelumnya (Q atau ←)" aria-label="Foto sebelumnya">‹</button><div id="thumbs"></div><button type="button" class="thb" id="thNext" title="Foto berikutnya (E atau →)" aria-label="Foto berikutnya">›</button></div>
     <div id="thHint" class="hint">Pindah foto: tekan <kbd>Q</kbd> ke kiri, <kbd>E</kbd> ke kanan (atau panah ← →). Roda mouse di daftar foto juga menggeser.</div>
     <div id="grpInfo" class="hint"></div>
+    <div id="locBar"><div id="locFill"></div></div><div id="locInfo"></div>
     <input id="file" type="file" accept="image/*" multiple hidden>
     <div id="editing" class="hint">Belum ada foto. Klik area pratinjau atau tombol + untuk memilih (bisa banyak).</div>
     <div class="btns">
@@ -516,8 +528,8 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
       <div id="results"></div>
     </div>
     <div id="map"></div>
-    <div class="btns"><button class="btn" id="gps" type="button">📡 Lokasi saya</button></div>
-    <p class="hint">Klik peta (atau pilih hasil pencarian) untuk memasang lokasi: stempel GPS langsung muncul dan foto otomatis pindah ke berikutnya. Geser pin untuk koreksi tanpa pindah foto. Foto sebelumnya: tombol <kbd>Q</kbd> / ←.</p>
+    <div class="btns"><button class="btn" id="gps" type="button">📡 Lokasi saya</button><button class="btn" id="qSame" type="button" title="Pakai lokasi foto sebelumnya lalu lanjut (W)">📋 Sama dgn sebelumnya <kbd>W</kbd></button><button class="btn" id="qNext" type="button" title="Loncat ke foto yang belum ada lokasi (N)">⏭ Foto belum berlokasi <kbd>N</kbd></button><button class="btn" id="qAll" type="button">📌 Terapkan ke semua yang belum</button></div>
+    <p class="hint">Klik peta (atau pilih hasil pencarian): stempel GPS langsung muncul dan otomatis lompat ke foto yang BELUM berlokasi (tanda merah ❗). Foto di tempat yang sama? Tekan <kbd>W</kbd>. Geser pin untuk koreksi tanpa pindah. Kembali: <kbd>Q</kbd> / ←.</p>
     <div class="row">
       <div><label for="lat">Latitude</label><input id="lat" type="number" step="0.000001"></div>
       <div><label for="lng">Longitude</label><input id="lng" type="number" step="0.000001"></div>
@@ -1028,16 +1040,21 @@ async function select(i,skipRead){
 function listThumbs(){
   const t=$('thumbs');t.innerHTML='';
   photos.forEach((p,i)=>{
-    const b=document.createElement('button');b.type='button';b.className=i===cur?'on':'';b.title=(i+1)+'. '+p.name;
+    const b=document.createElement('button');b.type='button';b.className=(i===cur?'on':'')+(p.loc?'':' unset');b.title=(i+1)+'. '+p.name+(p.loc?' (lokasi ✔)':' (BELUM ada lokasi)');
     const im=document.createElement('img');im.src=p.th;im.alt=p.name;
     const n=document.createElement('span');n.className='num';n.textContent=i+1;
     const g=document.createElement('span');g.className='grp';g.textContent=grpOf(p)?'🌙':'☀️';
     if(i>0&&grpOf(p)!==grpOf(photos[i-1]))b.style.marginLeft='18px';
-    b.append(im,n,g);b.onclick=()=>select(i);t.appendChild(b);
+    const l=document.createElement('span');l.className='lc';l.textContent=p.loc?'✓':'!';
+    b.append(im,n,g,l);b.onclick=()=>select(i);t.appendChild(b);
   });
   const a=document.createElement('label');a.className='add';a.htmlFor='file';a.textContent='+';a.title='Tambah foto';t.appendChild(a);
   const malam=photos.filter(p=>grpOf(p)).length;
   $('grpInfo').textContent=photos.length?'☀️ Siang: '+(photos.length-malam)+' foto  ·  🌙 Malam: '+malam+' foto':'';
+  const nDone=photos.filter(p=>p.loc).length,nAll=photos.length;
+  $('locFill').style.width=(nAll?nDone/nAll*100:0)+'%';
+  const li=$('locInfo');li.className=nAll&&nDone===nAll?'done':'';
+  li.textContent=nAll?(nDone===nAll?'✅ Lokasi lengkap: '+nDone+'/'+nAll+' foto':'📍 Lokasi: '+nDone+'/'+nAll+' foto  ·  ❗ Belum: '+(nAll-nDone)+' (tanda merah)'):'';
   const tg=$('togel');
   tg.disabled=cur<0;tg.textContent=cur>=0&&grpOf(photos[cur])?'☀️ Ubah ke siang':'🌙 Ubah ke malam';
   const has=photos.length>0;
@@ -1098,7 +1115,7 @@ async function blobFor(p,type){
 function saveBlob(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),8000)}
 const fname=(p,i,ext)=>p2(i+1)+'-'+p.name+'-gps.'+ext;
 async function saveCur(type){
-  if(cur<0)return;readInputs();msg('Memproses…');
+  if(cur<0)return;readInputs();if(!warnUnset([photos[cur]]))return;msg('Memproses…');
   try{const b=await blobFor(photos[cur],type);saveBlob(b,fname(photos[cur],cur,type==='image/png'?'png':'jpg'));msg('Selesai.');logExp([photos[cur]])}
   catch(e){msg('Gagal membuat file. Matikan peta mini lalu coba lagi.')}
 }
@@ -1106,7 +1123,7 @@ $('dl').onclick=$('dl2').onclick=()=>saveCur('image/jpeg');
 $('dlp').onclick=()=>saveCur('image/png');
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
 $('dlz').onclick=async()=>{
-  readInputs();
+  readInputs();if(!warnUnset())return;
   try{
     if(typeof JSZip==='undefined'){msg('Menyiapkan ZIP…');await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')}
     const z=new JSZip();
@@ -1158,9 +1175,11 @@ function reverseQueued(lat,lng,d){
     await reverse(lat,lng,d);
   }).catch(()=>{});
 }
+let lastLocPhoto=null;
 function setPos(lat,lng,opts){
   opts=opts||{};
   $('lat').value=(+lat).toFixed(6);$('lng').value=(+lng).toFixed(6);readInputs();
+  if(cur>=0&&!opts.noMark){const p=photos[cur],was=p.loc;p.loc=true;lastLocPhoto=p;if(!was)listThumbs()}
   marker.setLatLng([lat,lng]);
   if(opts.pan)map.setView([lat,lng],opts.zoom||map.getZoom());
   if(opts.fast){cancelAnimationFrame(raf);draw()}else sched();   // fast: stempel GPS langsung tampil
@@ -1174,16 +1193,66 @@ function setPos(lat,lng,opts){
 try{const v=localStorage.getItem('grid-autonext');if(v!==null)$('autoNext').checked=v==='1'}catch(e){}
 $('autoNext').addEventListener('change',()=>{try{localStorage.setItem('grid-autonext',$('autoNext').checked?'1':'0')}catch(e){}});
 let advT=0;
+function nextUnset(from){
+  const n=photos.length;
+  for(let k=1;k<=n;k++){const i=((from+k)%n+n)%n;if(!photos[i].loc)return i}
+  return -1;
+}
 function afterPick(){
   clearTimeout(advT);
   if(cur<0)return;
   const m=$('miniPrev');if(m){m.classList.remove('flash');void m.offsetWidth;m.classList.add('flash')}
-  if(!$('autoNext').checked){msg('📍 Lokasi terpasang: '+$('lat').value+', '+$('lng').value);return}
-  if(cur>=photos.length-1){msg('✅ Lokasi terpasang. Ini foto terakhir.');return}
-  const from=cur+1;
-  msg('📍 Foto '+from+' selesai → pindah ke foto '+(from+1));
-  advT=setTimeout(()=>{if(cur===from-1)select(cur+1)},380);
+  const tot=photos.length,done=photos.filter(p=>p.loc).length;
+  if(!$('autoNext').checked){msg('📍 Lokasi terpasang ('+done+'/'+tot+')');return}
+  const nx=nextUnset(cur);
+  if(nx<0){msg('✅ Semua '+tot+' foto sudah ada lokasinya. Tinggal unduh.');return}
+  msg('📍 '+done+'/'+tot+' ✔  →  foto '+(nx+1));
+  select(nx);   // langsung pindah: stempel sudah tergambar, tidak ada jeda
 }
+/* ---------- aksi super cepat ---------- */
+function copyLocFrom(src,dst){
+  dst.d.lat=src.d.lat;dst.d.lng=src.d.lng;dst.d.title=src.d.title;dst.d.addr=src.d.addr;dst.loc=true;
+}
+function samaSebelumnya(){
+  if(cur<0){msg('Belum ada foto.');return}
+  let src=lastLocPhoto&&lastLocPhoto!==photos[cur]&&photos.includes(lastLocPhoto)?lastLocPhoto:null;
+  if(!src){for(let i=cur-1;i>=0;i--)if(photos[i].loc){src=photos[i];break}}
+  if(!src){msg('Belum ada foto lain yang sudah berlokasi.');return}
+  readInputs();copyLocFrom(src,photos[cur]);lastLocPhoto=photos[cur];
+  loadInputs();
+  map.setView([+src.d.lat,+src.d.lng],map.getZoom());
+  cancelAnimationFrame(raf);draw();listThumbs();afterPick();
+}
+function loncatBelum(){
+  if(!photos.length){msg('Belum ada foto.');return}
+  const nx=photos[cur]&&!photos[cur].loc?cur:nextUnset(cur<0?-1:cur);
+  if(nx<0){msg('✅ Semua foto sudah ada lokasinya.');return}
+  if(nx===cur){msg('Foto ini sendiri yang belum berlokasi.');return}
+  select(nx);
+}
+function terapkanSemua(){
+  if(cur<0||!photos[cur].loc){msg('Pasang lokasi di foto ini dulu (klik peta), lalu tekan tombol ini.');return}
+  readInputs();
+  const n=photos.filter(p=>!p.loc).length;
+  if(!n){msg('Semua foto sudah ada lokasinya.');return}
+  if(!confirm('Terapkan lokasi foto ini ke '+n+' foto yang belum punya lokasi?'))return;
+  photos.forEach(p=>{if(!p.loc)copyLocFrom(photos[cur],p)});
+  listThumbs();msg('📌 Lokasi diterapkan ke '+n+' foto.');
+}
+function warnUnset(list){
+  const k=(list||photos).filter(p=>!p.loc).length;
+  return !k||confirm(k+' foto belum diberi lokasi (koordinat masih bawaan foto lain). Tetap unduh?');
+}
+$('qSame').onclick=samaSebelumnya;$('qNext').onclick=loncatBelum;$('qAll').onclick=terapkanSemua;
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(document.documentElement.classList.contains('locked'))return;
+  const v=$('v-gen');if(!v||v.hidden)return;
+  const el=e.target;
+  if(el&&el.closest&&el.closest('input,textarea,select,[contenteditable="true"]'))return;
+  if(e.code==='KeyW'){e.preventDefault();samaSebelumnya()}
+  else if(e.code==='KeyN'){e.preventDefault();loncatBelum()}
+});
 map.on('click',e=>{setPos(e.latlng.lat,e.latlng.lng,{fast:true});afterPick()});
 marker.on('dragend',()=>{const p=marker.getLatLng();setPos(p.lat,p.lng)});
 ['lat','lng'].forEach(id=>$(id).addEventListener('change',()=>{
@@ -1615,7 +1684,7 @@ async function autoDb(list){
   else if(n)toast('Tersimpan juga ke database ('+n+' foto).');
 }
 async function dlAll(){
-  if(!photos.length)return;readInputs();
+  if(!photos.length)return;readInputs();if(!warnUnset())return;
   try{
     for(let i=0;i<photos.length;i++){
       toast('Mengunduh '+(i+1)+'/'+photos.length+'…');
