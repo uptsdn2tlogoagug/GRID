@@ -221,6 +221,11 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
 #payBox label{display:block;font-size:.8rem;color:var(--mut);margin:8px 0 4px}
 #payBox input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:11px;background:var(--card);color:var(--tx);outline:none}
 #payBox ol{margin:10px 0 0;padding-left:18px;font-size:.78rem;color:var(--mut)}
+#payPk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+#payPk button{padding:10px 6px;border:1.5px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;font-size:.78rem;cursor:pointer;line-height:1.35}
+#payPk button b{display:block;font-size:.88rem;margin-top:2px}
+#payPk button.on{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 18%,transparent)}
+@media(max-width:380px){#payPk{grid-template-columns:1fr}}
 #payNote{margin:10px 0 0;font-size:.82rem;color:#d64545;min-height:1.2em}
 </style>
 <style id="grid-redesign">
@@ -453,13 +458,14 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
   <div id="payBox" aria-live="polite">
     <h2>Beli token akses</h2>
     <p class="pay-sub">Aplikasi ini berbayar. Transfer dulu, lalu konfirmasi lewat WhatsApp. Token diaktifkan setelah pembayaran dicek.</p>
+    <div id="payPk" role="radiogroup" aria-label="Pilih paket"></div>
     <div class="pay-price"><span id="payPkg">Token akses</span><b id="payAmt"></b></div>
     <div class="pay-acc" id="payAcc"></div>
     <label for="payNama">Nama Anda</label><input id="payNama" type="text" autocomplete="off" placeholder="Nama lengkap">
     <label for="payKode">Kode token yang diinginkan (min. 4 karakter)</label><input id="payKode" type="text" autocomplete="off" placeholder="contoh: budi2026">
     <button class="btn pri" type="button" id="payWa" style="margin-top:12px">Saya sudah transfer, konfirmasi via WhatsApp</button>
     <p id="payNote" role="alert"></p>
-    <ol><li>Transfer sesuai nominal ke rekening di atas.</li><li>Tekan tombol hijau, lalu kirim pesan beserta foto bukti transfer.</li><li>Setelah dicek, token Anda diaktifkan dan bisa dipakai untuk masuk.</li></ol>
+    <ol><li>Pilih paket, lalu transfer sesuai nominal ke SeaBank atau DANA.</li><li>Tekan tombol hijau, lalu kirim pesan beserta foto bukti transfer.</li><li>Setelah dicek, token Anda diaktifkan dan bisa dipakai untuk masuk.</li></ol>
   </div>
   <p id="verTag" style="text-align:center;font-size:.72rem;margin:12px 0 0;color:var(--mut)">Versi akun-bersama 5</p>
   <p style="text-align:center;font-size:.8rem;margin:14px 0 0;color:var(--mut)">Pengembang <strong style="color:var(--ac)">@masluki.id</strong></p>
@@ -1633,31 +1639,39 @@ async function doLogin(){
 }
 /* ---------- pembayaran token ---------- */
 const PAY={
-  harga:0,                       /* nominal dalam rupiah, contoh 50000 (isi sebelum dipakai) */
-  paket:'Token akses GRID',      /* nama paket */
-  bank:'',                       /* contoh: BCA / BRI / DANA */
-  norek:'',                      /* nomor rekening / nomor e-wallet */
-  atasNama:'',                   /* nama pemilik rekening */
+  paket:[                        /* pilihan paket */
+    {id:'mingguan',label:'1 Minggu',harga:100000},
+    {id:'bulanan',label:'1 Bulan',harga:350000},
+    {id:'tahunan',label:'1 Tahun',harga:1500000}
+  ],
+  atasNama:'LUCKY ARDIANSYAH PUTRA',
+  rek:[                          /* pilihan transfer */
+    {bank:'SeaBank',no:'901133486497'},
+    {bank:'DANA',no:'083834294123'}
+  ],
   wa:'6283834294123'             /* WhatsApp penerima konfirmasi, format 62... */
 };
 const rp=n=>'Rp'+Number(n||0).toLocaleString('id-ID');
+let paySel=1;
 function renderPay(){
-  const ok=PAY.bank&&PAY.norek&&PAY.atasNama&&PAY.harga>0;
-  $('payPkg').textContent=PAY.paket;
-  $('payAmt').textContent=PAY.harga>0?rp(PAY.harga):'-';
-  $('payAcc').innerHTML=ok
-    ?'<div>Transfer ke <b>'+esc(PAY.bank)+'</b></div><div class="no"><span id="payNo">'+esc(PAY.norek)+'</span><button type="button" id="payCopy">Salin</button></div><div>a.n. <b>'+esc(PAY.atasNama)+'</b></div>'
-    :'<div>Info rekening belum diisi pemilik aplikasi. Hubungi admin lewat WhatsApp untuk meminta nomor rekening.</div>';
+  const pk=PAY.paket[paySel];
+  $('payPk').innerHTML=PAY.paket.map((x,i)=>'<button type="button" role="radio" aria-checked="'+(i===paySel)+'" class="'+(i===paySel?'on':'')+'" data-pk="'+i+'">'+esc(x.label)+'<b>'+rp(x.harga)+'</b></button>').join('');
+  $('payPkg').textContent='Paket '+pk.label;
+  $('payAmt').textContent=rp(pk.harga);
+  $('payAcc').innerHTML='<div style="margin-bottom:6px">Transfer <b>'+rp(pk.harga)+'</b> ke salah satu:</div>'
+    +PAY.rek.map(r=>'<div style="margin-bottom:8px"><div><b>'+esc(r.bank)+'</b></div><div class="no"><span>'+esc(r.no)+'</span><button type="button" data-copy="'+esc(r.no)+'">Salin</button></div></div>').join('')
+    +'<div>a.n. <b>'+esc(PAY.atasNama)+'</b></div>';
 }
+$('payPk').addEventListener('click',e=>{const b=e.target.closest('[data-pk]');if(!b)return;paySel=+b.dataset.pk;renderPay()});
 function showPay(on){const b=$('payBox');b.classList.toggle('show',on===undefined?!b.classList.contains('show'):on);if(b.classList.contains('show')){renderPay();b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
 $('payToggle').onclick=()=>showPay();
-$('payAcc').addEventListener('click',e=>{if(e.target.id==='payCopy'){try{navigator.clipboard.writeText(PAY.norek);e.target.textContent='Tersalin'}catch(x){e.target.textContent='Salin manual'}}});
+$('payAcc').addEventListener('click',e=>{const c=e.target.dataset&&e.target.dataset.copy;if(c){try{navigator.clipboard.writeText(c);e.target.textContent='Tersalin'}catch(x){e.target.textContent='Salin manual'}}});
 $('payWa').onclick=()=>{
   const nm=$('payNama').value.trim(),kd=$('payKode').value.replace(/\s+/g,''),n=$('payNote');
   if(nm.length<3){n.textContent='Isi nama Anda.';return}
   if(kd.length<4){n.textContent='Kode token minimal 4 karakter.';return}
   n.textContent='';
-  const t='Halo admin GRID, saya mau beli token akses.\n\nNama: '+nm+'\nKode token yang diinginkan: '+kd+(PAY.harga>0?'\nNominal transfer: '+rp(PAY.harga):'')+'\n\nBukti transfer saya lampirkan di chat ini.';
+  const t='Halo admin GRID, saya mau beli token akses.\n\nNama: '+nm+'\nKode token yang diinginkan: '+kd+'\nPaket: '+PAY.paket[paySel].label+'\nNominal transfer: '+rp(PAY.paket[paySel].harga)+'\n\nBukti transfer saya lampirkan di chat ini.';
   window.open('https://wa.me/'+PAY.wa+'?text='+encodeURIComponent(t),'_blank','noopener');
 };
 $('loginShow').onclick=()=>{const i=$('loginCode');i.type=i.type==='password'?'text':'password';$('loginShow').textContent=i.type==='password'?'Tampilkan':'Sembunyikan'};
