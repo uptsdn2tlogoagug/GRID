@@ -207,6 +207,22 @@ try{var _a=localStorage.getItem(GRID_AUTH.k)||sessionStorage.getItem(GRID_AUTH.k
 #loginErr{min-height:1.3em;margin:10px 0 0;color:#d64545;font-weight:500}
 </style>
 
+<style id="pay-css">
+.pay-link{display:block;width:100%;margin:14px 0 0;background:none;border:0;color:var(--ac);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:underline;text-underline-offset:3px}
+#payBox{display:none;margin-top:14px;padding:16px;border:1px solid var(--bd);border-radius:14px;background:var(--fld)}
+#payBox.show{display:block}
+#payBox h2{margin:0 0 4px;font-size:1.05rem}
+#payBox .pay-sub{margin:0 0 12px;font-size:.82rem;color:var(--mut)}
+.pay-price{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:11px;background:color-mix(in srgb,var(--ac) 12%,transparent);margin-bottom:10px;font-weight:600}
+.pay-price b{color:var(--ac);font-size:1.1rem}
+.pay-acc{padding:10px 12px;border:1px dashed var(--bd);border-radius:11px;margin-bottom:12px;font-size:.88rem;line-height:1.6}
+.pay-acc .no{display:flex;gap:8px;align-items:center;justify-content:space-between;font-weight:700;font-size:1.05rem;letter-spacing:.04em}
+.pay-acc .no button{padding:5px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font-size:.75rem;cursor:pointer}
+#payBox label{display:block;font-size:.8rem;color:var(--mut);margin:8px 0 4px}
+#payBox input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:11px;background:var(--card);color:var(--tx);outline:none}
+#payBox ol{margin:10px 0 0;padding-left:18px;font-size:.78rem;color:var(--mut)}
+#payNote{margin:10px 0 0;font-size:.82rem;color:#d64545;min-height:1.2em}
+</style>
 <style id="grid-redesign">
 :root{
   --bg:#f3f6f5;--card:#fff;--tx:#172b26;--mut:#687b74;--bd:#dfe8e4;
@@ -421,48 +437,30 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
 <style id="grid-gal">.gdbh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:26px 0 12px}.gdbh h2{margin:0;font:800 1.2rem var(--hd);letter-spacing:-.02em}.gdbh small{color:var(--mut)}
 .dbimg{aspect-ratio:4/3;background:linear-gradient(110deg,var(--fld) 30%,color-mix(in srgb,var(--cy) 14%,var(--fld)) 50%,var(--fld) 70%) 0 0/200% 100%;animation:shimmer 1.4s linear infinite}.dbimg.ok{animation:none;background:var(--fld)}.dbimg img{width:100%;height:100%;object-fit:cover;display:block;animation:viewIn .5s var(--ease) both}
 @keyframes shimmer{to{background-position:-200% 0}}</style>
-<style id="fastCss">
-#miniPrev{display:none;position:fixed;right:10px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:40;width:min(46vw,210px);border-radius:12px;overflow:hidden;border:2px solid var(--ac);box-shadow:0 10px 30px rgba(0,0,0,.45);background:#000;cursor:pointer}
-#miniPrev.on{display:block}
-#miniPrev canvas{display:block;width:100%;height:auto}
-#miniNo{position:absolute;left:6px;top:6px;background:rgba(0,0,0,.65);color:#fff;font:700 .72rem/1 system-ui,sans-serif;padding:4px 7px;border-radius:99px}
-#miniPrev.flash{animation:miniFlash .5s ease}
-@keyframes miniFlash{0%{transform:scale(1)}40%{transform:scale(1.06);border-color:#fff}100%{transform:scale(1)}}
-#v-gen #map{cursor:crosshair}
-#autoNextWrap{font-weight:600}
-@media(max-width:900px){
- #v-gen #map{height:min(58vh,480px)}
- #v-gen .chk{padding:6px 0}
- #v-gen .chk input{width:22px;height:22px}
- #v-gen .btn{min-height:44px}
- #v-gen .thb{min-width:46px;min-height:46px}
- #thumbs button{scroll-snap-align:center}
-}
-@media(prefers-reduced-motion:reduce){#miniPrev.flash{animation:none}}
-</style>
-<style id="fastCss2">
-#locBar{height:8px;border-radius:99px;background:var(--fld);border:1px solid var(--bd);overflow:hidden;margin-top:8px}
-#locFill{height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .25s}
-#locInfo{font-size:.84rem;font-weight:700;margin-top:6px}
-#locInfo.done{color:#22c55e}
-#thumbs button.unset{border-color:#ef4444;box-shadow:0 0 0 1px #ef444455}
-#thumbs button.unset.on{border-color:var(--ac);box-shadow:0 0 0 2px #ef4444}
-#thumbs .lc{position:absolute;right:3px;bottom:3px;font-size:.62rem;font-weight:800;line-height:1.35;border-radius:6px;padding:0 5px;color:#fff;background:#16a34a}
-#thumbs button.unset .lc{background:#dc2626}
-#qSame kbd,#qNext kbd{margin-left:4px}
-</style>
 </head>
 <body>
 <section id="login" aria-label="Masuk">
 <form class="lcard" id="loginForm" autocomplete="off">
   <div class="lbrand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg></div><div><b>GPS</b><span>Generator foto</span></div></div>
-  <h1>Masuk</h1><p>Masukkan kode akses untuk membuka aplikasi.</p>
+  <h1>Masuk</h1><p>Masukkan token akses untuk membuka aplikasi.</p>
   <label for="loginCode">Kode akses</label>
   <div class="lrow"><input id="loginCode" type="password" autocomplete="off" required><button class="btn" type="button" id="loginShow" style="width:auto;padding:0 14px">Tampilkan</button></div>
   <div id="loginUrlRow" hidden style="margin:10px 0"><label for="loginUrl" style="font-size:.8rem;color:var(--mut)">Link database (cukup sekali di komputer ini)</label><input id="loginUrl" type="text" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:11px;background:var(--fld);color:var(--tx)"></div>
   <label class="chk"><input id="loginKeep" type="checkbox" checked> Ingat di perangkat ini</label>
   <button class="btn pri" type="submit">Masuk</button>
   <p id="loginErr" role="alert"></p>
+  <button type="button" class="pay-link" id="payToggle">Kode belum terdaftar? Beli token di sini</button>
+  <div id="payBox" aria-live="polite">
+    <h2>Beli token akses</h2>
+    <p class="pay-sub">Aplikasi ini berbayar. Transfer dulu, lalu konfirmasi lewat WhatsApp. Token diaktifkan setelah pembayaran dicek.</p>
+    <div class="pay-price"><span id="payPkg">Token akses</span><b id="payAmt"></b></div>
+    <div class="pay-acc" id="payAcc"></div>
+    <label for="payNama">Nama Anda</label><input id="payNama" type="text" autocomplete="off" placeholder="Nama lengkap">
+    <label for="payKode">Kode token yang diinginkan (min. 4 karakter)</label><input id="payKode" type="text" autocomplete="off" placeholder="contoh: budi2026">
+    <button class="btn pri" type="button" id="payWa" style="margin-top:12px">Saya sudah transfer, konfirmasi via WhatsApp</button>
+    <p id="payNote" role="alert"></p>
+    <ol><li>Transfer sesuai nominal ke rekening di atas.</li><li>Tekan tombol hijau, lalu kirim pesan beserta foto bukti transfer.</li><li>Setelah dicek, token Anda diaktifkan dan bisa dipakai untuk masuk.</li></ol>
+  </div>
   <p id="verTag" style="text-align:center;font-size:.72rem;margin:12px 0 0;color:var(--mut)">Versi akun-bersama 5</p>
   <p style="text-align:center;font-size:.8rem;margin:14px 0 0;color:var(--mut)">Pengembang <strong style="color:var(--ac)">@masluki.id</strong></p>
 </form>
@@ -505,7 +503,6 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
     <div class="thnav"><button type="button" class="thb" id="thPrev" title="Foto sebelumnya (Q atau ←)" aria-label="Foto sebelumnya">‹</button><div id="thumbs"></div><button type="button" class="thb" id="thNext" title="Foto berikutnya (E atau →)" aria-label="Foto berikutnya">›</button></div>
     <div id="thHint" class="hint">Pindah foto: tekan <kbd>Q</kbd> ke kiri, <kbd>E</kbd> ke kanan (atau panah ← →). Roda mouse di daftar foto juga menggeser.</div>
     <div id="grpInfo" class="hint"></div>
-    <div id="locBar"><div id="locFill"></div></div><div id="locInfo"></div>
     <input id="file" type="file" accept="image/*" multiple hidden>
     <div id="editing" class="hint">Belum ada foto. Klik area pratinjau atau tombol + untuk memilih (bisa banyak).</div>
     <div class="btns">
@@ -528,14 +525,13 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
       <div id="results"></div>
     </div>
     <div id="map"></div>
-    <div class="btns"><button class="btn" id="gps" type="button">📡 Lokasi saya</button><button class="btn" id="qSame" type="button" title="Pakai lokasi foto sebelumnya lalu lanjut (W)">📋 Sama dgn sebelumnya <kbd>W</kbd></button><button class="btn" id="qNext" type="button" title="Loncat ke foto yang belum ada lokasi (N)">⏭ Foto belum berlokasi <kbd>N</kbd></button><button class="btn" id="qAll" type="button">📌 Terapkan ke semua yang belum</button></div>
-    <p class="hint">Klik peta (atau pilih hasil pencarian): stempel GPS langsung muncul dan otomatis lompat ke foto yang BELUM berlokasi (tanda merah ❗). Foto di tempat yang sama? Tekan <kbd>W</kbd>. Geser pin untuk koreksi tanpa pindah. Kembali: <kbd>Q</kbd> / ←.</p>
+    <div class="btns"><button class="btn" id="gps" type="button">📡 Lokasi saya</button></div>
+    <p class="hint">Klik peta atau geser pin untuk memindahkan titik.</p>
     <div class="row">
       <div><label for="lat">Latitude</label><input id="lat" type="number" step="0.000001"></div>
       <div><label for="lng">Longitude</label><input id="lng" type="number" step="0.000001"></div>
     </div>
     <label class="chk"><input id="auto" type="checkbox" checked> Isi nama &amp; alamat otomatis saat pin dipindah</label>
-    <label class="chk" id="autoNextWrap"><input id="autoNext" type="checkbox" checked> ⚡ Pindah otomatis ke foto berikutnya setelah klik lokasi</label>
     <label for="title">Judul lokasi (baris besar)</label>
     <input id="title" type="text">
     <div id="admChips" class="chips" style="display:none"></div>
@@ -674,7 +670,6 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
 </div></div>
 <nav class="tabs" aria-label="Menu utama"><button class="nv" type="button" data-v="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="9" rx="2"/><rect x="13.5" y="3" width="7.5" height="5" rx="2"/><rect x="13.5" y="11" width="7.5" height="10" rx="2"/><rect x="3" y="15" width="7.5" height="6" rx="2"/></svg><span>Dasbor</span></button><button class="nv" type="button" data-v="gen"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg><span>Generator</span></button><button class="nv" type="button" data-v="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><span>Galeri</span></button><button class="nv" type="button" data-v="db"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span>Database</span></button></nav>
 
-<div id="miniPrev" aria-hidden="true"><canvas id="miniCv" width="320" height="200"></canvas><span id="miniNo"></span></div>
 <div class="dock">
   <button class="btn pri" id="dl2" type="button" disabled>⬇️ Unduh JPG</button>
   <button class="btn" id="add2" type="button">＋ Foto</button>
@@ -835,7 +830,6 @@ function draw(){
   else{x.fillStyle='#7b8a99';x.fillRect(0,0,W,H);x.fillStyle='#fff';x.font='30px '+FONT;x.textAlign='center';x.fillText('Ketuk untuk memilih foto',W/2,H/2-40);x.textAlign='left'}
   overlay(x,W,H,s,tc);
   if(s.showMap&&k&&!tcache.has(k)&&pending!==k){pending=k;thumbFor(s).then(()=>{pending='';sched()})}
-  if(window.mirrorMini)mirrorMini();
 }
 function sched(){cancelAnimationFrame(raf);raf=requestAnimationFrame(draw)}
 function msg(t){$('msg').textContent=t;if(t)setTimeout(()=>{if($('msg').textContent===t)$('msg').textContent=''},4500)}
@@ -1017,44 +1011,27 @@ function acakSemua(){
   if(pilih)select(photos.indexOf(pilih),true);
   msg(infoUrut(r)||'Jam semua foto sudah disusun ulang dari '+$('jamMulai').value.slice(0,5)+' dengan jarak '+jarakMenit()+' menit.');
 }
-let nextCache=null;
-async function getPrev(file){
-  if(nextCache&&nextCache.file===file){const c=nextCache.c;nextCache=null;return c}
-  return decode(file,1280);
-}
-function prefetchNext(){
-  const nx=cur>=0?photos[cur+1]:null;
-  if(!nx||(nextCache&&nextCache.file===nx.file))return;
-  const f=nx.file;
-  decode(f,1280).then(c=>{if(c)nextCache={file:f,c}});
-}
 async function select(i,skipRead){
   if(!skipRead)readInputs();
   cur=i;loadInputs();listThumbs();
   const t=++selTok;
-  const c=cur>=0?await getPrev(photos[cur].file):null;
+  const c=cur>=0?await decode(photos[cur].file,1280):null;
   if(t!==selTok)return;
   curPrev=c;draw();
-  prefetchNext();
 }
 function listThumbs(){
   const t=$('thumbs');t.innerHTML='';
   photos.forEach((p,i)=>{
-    const b=document.createElement('button');b.type='button';b.className=(i===cur?'on':'')+(p.loc?'':' unset');b.title=(i+1)+'. '+p.name+(p.loc?' (lokasi ✔)':' (BELUM ada lokasi)');
+    const b=document.createElement('button');b.type='button';b.className=i===cur?'on':'';b.title=(i+1)+'. '+p.name;
     const im=document.createElement('img');im.src=p.th;im.alt=p.name;
     const n=document.createElement('span');n.className='num';n.textContent=i+1;
     const g=document.createElement('span');g.className='grp';g.textContent=grpOf(p)?'🌙':'☀️';
     if(i>0&&grpOf(p)!==grpOf(photos[i-1]))b.style.marginLeft='18px';
-    const l=document.createElement('span');l.className='lc';l.textContent=p.loc?'✓':'!';
-    b.append(im,n,g,l);b.onclick=()=>select(i);t.appendChild(b);
+    b.append(im,n,g);b.onclick=()=>select(i);t.appendChild(b);
   });
   const a=document.createElement('label');a.className='add';a.htmlFor='file';a.textContent='+';a.title='Tambah foto';t.appendChild(a);
   const malam=photos.filter(p=>grpOf(p)).length;
   $('grpInfo').textContent=photos.length?'☀️ Siang: '+(photos.length-malam)+' foto  ·  🌙 Malam: '+malam+' foto':'';
-  const nDone=photos.filter(p=>p.loc).length,nAll=photos.length;
-  $('locFill').style.width=(nAll?nDone/nAll*100:0)+'%';
-  const li=$('locInfo');li.className=nAll&&nDone===nAll?'done':'';
-  li.textContent=nAll?(nDone===nAll?'✅ Lokasi lengkap: '+nDone+'/'+nAll+' foto':'📍 Lokasi: '+nDone+'/'+nAll+' foto  ·  ❗ Belum: '+(nAll-nDone)+' (tanda merah)'):'';
   const tg=$('togel');
   tg.disabled=cur<0;tg.textContent=cur>=0&&grpOf(photos[cur])?'☀️ Ubah ke siang':'🌙 Ubah ke malam';
   const has=photos.length>0;
@@ -1115,7 +1092,7 @@ async function blobFor(p,type){
 function saveBlob(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),8000)}
 const fname=(p,i,ext)=>p2(i+1)+'-'+p.name+'-gps.'+ext;
 async function saveCur(type){
-  if(cur<0)return;readInputs();if(!warnUnset([photos[cur]]))return;msg('Memproses…');
+  if(cur<0)return;readInputs();msg('Memproses…');
   try{const b=await blobFor(photos[cur],type);saveBlob(b,fname(photos[cur],cur,type==='image/png'?'png':'jpg'));msg('Selesai.');logExp([photos[cur]])}
   catch(e){msg('Gagal membuat file. Matikan peta mini lalu coba lagi.')}
 }
@@ -1123,7 +1100,7 @@ $('dl').onclick=$('dl2').onclick=()=>saveCur('image/jpeg');
 $('dlp').onclick=()=>saveCur('image/png');
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
 $('dlz').onclick=async()=>{
-  readInputs();if(!warnUnset())return;
+  readInputs();
   try{
     if(typeof JSZip==='undefined'){msg('Menyiapkan ZIP…');await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')}
     const z=new JSZip();
@@ -1161,99 +1138,15 @@ layers.sat.addTo(map);
 const pinSvg='<svg class="pinicon" width="34" height="44" viewBox="0 0 34 44"><path d="M17 43C6 28 2 22 2 15 2 7.8 8.8 2 17 2s15 5.8 15 13c0 7-4 13-15 28z" fill="#e53935" stroke="#fff" stroke-width="2"/><circle cx="17" cy="15" r="5.5" fill="#7f1d1d"/></svg>';
 const marker=L.marker(START,{draggable:true,icon:L.divIcon({className:'',html:pinSvg,iconSize:[34,44],iconAnchor:[17,43]})}).addTo(map);
 let rgT=0;
-/* Antrean reverse-geocode: jeda min. 1 detik antar permintaan (aturan Nominatim),
-   tiap foto punya hasil sendiri sehingga klik cepat beruntun tidak saling membatalkan. */
-let revLast=0,revChain=Promise.resolve();
-function reverseQueued(lat,lng,d){
-  const my=d._rq=(d._rq||0)+1;
-  revChain=revChain.then(async()=>{
-    if(d._rq!==my)return;
-    const w=Math.max(0,revLast+1000-Date.now());
-    if(w)await new Promise(r=>setTimeout(r,w));
-    if(d._rq!==my)return;
-    revLast=Date.now();
-    await reverse(lat,lng,d);
-  }).catch(()=>{});
-}
-let lastLocPhoto=null;
 function setPos(lat,lng,opts){
   opts=opts||{};
   $('lat').value=(+lat).toFixed(6);$('lng').value=(+lng).toFixed(6);readInputs();
-  if(cur>=0&&!opts.noMark){const p=photos[cur],was=p.loc;p.loc=true;lastLocPhoto=p;if(!was)listThumbs()}
   marker.setLatLng([lat,lng]);
   if(opts.pan)map.setView([lat,lng],opts.zoom||map.getZoom());
-  if(opts.fast){cancelAnimationFrame(raf);draw()}else sched();   // fast: stempel GPS langsung tampil
-  if(!opts.noReverse&&$('auto').checked){
-    const d=D();
-    if(opts.fast)reverseQueued(lat,lng,d);
-    else{clearTimeout(rgT);rgT=setTimeout(()=>reverse(lat,lng,d),700)}
-  }
+  sched();
+  if(!opts.noReverse&&$('auto').checked){clearTimeout(rgT);const d=D();rgT=setTimeout(()=>reverse(lat,lng,d),700)}
 }
-/* ---------- klik lokasi -> stempel langsung muncul -> pindah foto otomatis ---------- */
-try{const v=localStorage.getItem('grid-autonext');if(v!==null)$('autoNext').checked=v==='1'}catch(e){}
-$('autoNext').addEventListener('change',()=>{try{localStorage.setItem('grid-autonext',$('autoNext').checked?'1':'0')}catch(e){}});
-let advT=0;
-function nextUnset(from){
-  const n=photos.length;
-  for(let k=1;k<=n;k++){const i=((from+k)%n+n)%n;if(!photos[i].loc)return i}
-  return -1;
-}
-function afterPick(){
-  clearTimeout(advT);
-  if(cur<0)return;
-  const m=$('miniPrev');if(m){m.classList.remove('flash');void m.offsetWidth;m.classList.add('flash')}
-  const tot=photos.length,done=photos.filter(p=>p.loc).length;
-  if(!$('autoNext').checked){msg('📍 Lokasi terpasang ('+done+'/'+tot+')');return}
-  const nx=nextUnset(cur);
-  if(nx<0){msg('✅ Semua '+tot+' foto sudah ada lokasinya. Tinggal unduh.');return}
-  msg('📍 '+done+'/'+tot+' ✔  →  foto '+(nx+1));
-  select(nx);   // langsung pindah: stempel sudah tergambar, tidak ada jeda
-}
-/* ---------- aksi super cepat ---------- */
-function copyLocFrom(src,dst){
-  dst.d.lat=src.d.lat;dst.d.lng=src.d.lng;dst.d.title=src.d.title;dst.d.addr=src.d.addr;dst.loc=true;
-}
-function samaSebelumnya(){
-  if(cur<0){msg('Belum ada foto.');return}
-  let src=lastLocPhoto&&lastLocPhoto!==photos[cur]&&photos.includes(lastLocPhoto)?lastLocPhoto:null;
-  if(!src){for(let i=cur-1;i>=0;i--)if(photos[i].loc){src=photos[i];break}}
-  if(!src){msg('Belum ada foto lain yang sudah berlokasi.');return}
-  readInputs();copyLocFrom(src,photos[cur]);lastLocPhoto=photos[cur];
-  loadInputs();
-  map.setView([+src.d.lat,+src.d.lng],map.getZoom());
-  cancelAnimationFrame(raf);draw();listThumbs();afterPick();
-}
-function loncatBelum(){
-  if(!photos.length){msg('Belum ada foto.');return}
-  const nx=photos[cur]&&!photos[cur].loc?cur:nextUnset(cur<0?-1:cur);
-  if(nx<0){msg('✅ Semua foto sudah ada lokasinya.');return}
-  if(nx===cur){msg('Foto ini sendiri yang belum berlokasi.');return}
-  select(nx);
-}
-function terapkanSemua(){
-  if(cur<0||!photos[cur].loc){msg('Pasang lokasi di foto ini dulu (klik peta), lalu tekan tombol ini.');return}
-  readInputs();
-  const n=photos.filter(p=>!p.loc).length;
-  if(!n){msg('Semua foto sudah ada lokasinya.');return}
-  if(!confirm('Terapkan lokasi foto ini ke '+n+' foto yang belum punya lokasi?'))return;
-  photos.forEach(p=>{if(!p.loc)copyLocFrom(photos[cur],p)});
-  listThumbs();msg('📌 Lokasi diterapkan ke '+n+' foto.');
-}
-function warnUnset(list){
-  const k=(list||photos).filter(p=>!p.loc).length;
-  return !k||confirm(k+' foto belum diberi lokasi (koordinat masih bawaan foto lain). Tetap unduh?');
-}
-$('qSame').onclick=samaSebelumnya;$('qNext').onclick=loncatBelum;$('qAll').onclick=terapkanSemua;
-document.addEventListener('keydown',e=>{
-  if(e.ctrlKey||e.metaKey||e.altKey)return;
-  if(document.documentElement.classList.contains('locked'))return;
-  const v=$('v-gen');if(!v||v.hidden)return;
-  const el=e.target;
-  if(el&&el.closest&&el.closest('input,textarea,select,[contenteditable="true"]'))return;
-  if(e.code==='KeyW'){e.preventDefault();samaSebelumnya()}
-  else if(e.code==='KeyN'){e.preventDefault();loncatBelum()}
-});
-map.on('click',e=>{setPos(e.latlng.lat,e.latlng.lng,{fast:true});afterPick()});
+map.on('click',e=>setPos(e.latlng.lat,e.latlng.lng));
 marker.on('dragend',()=>{const p=marker.getLatLng();setPos(p.lat,p.lng)});
 ['lat','lng'].forEach(id=>$(id).addEventListener('change',()=>{
   const la=parseFloat($('lat').value),lo=parseFloat($('lng').value);
@@ -1265,7 +1158,7 @@ $('mapType').addEventListener('change',()=>{
 $('gps').onclick=()=>{
   if(!navigator.geolocation){msg('Perangkat tidak mendukung GPS.');return}
   msg('Mengambil lokasi…');
-  navigator.geolocation.getCurrentPosition(p=>{setPos(p.coords.latitude,p.coords.longitude,{pan:true,zoom:18,fast:true});msg('Lokasi terisi.');afterPick()},
+  navigator.geolocation.getCurrentPosition(p=>{setPos(p.coords.latitude,p.coords.longitude,{pan:true,zoom:18});msg('Lokasi terisi.')},
     ()=>msg('Izin lokasi ditolak/tidak tersedia.'),{enableHighAccuracy:true,timeout:12000});
 };
 
@@ -1328,8 +1221,7 @@ async function search(){
         setPos(+it.lat,+it.lon,{pan:true,zoom:18,noReverse:true});
         const cands=admCandidates(it.address),t=cands.length?cands[0].title:'';
         $('title').value=(nm&&t&&!t.startsWith(nm)?nm+', ':'')+(t||nm);
-        $('addr').value=it.display_name;readInputs();renderChips(cands);cancelAnimationFrame(raf);draw();
-        $('q').value='';afterPick();
+        $('addr').value=it.display_name;readInputs();renderChips(cands);sched();
       };
       res.appendChild(b);
     });
@@ -1350,29 +1242,6 @@ $('opa').addEventListener('input',()=>{$('opav').textContent=$('opa').value+'%';
 
 setPos(START[0],START[1],{noReverse:true});
 setNow();loadInputs();listThumbs();draw();
-/* ---------- mini preview melayang (HP): stempel GPS tetap terlihat saat mengklik peta ---------- */
-(function(){
-  const box=$('miniPrev'),mc=$('miniCv'),no=$('miniNo');
-  let stageVisible=true;
-  function show(){
-    const gen=$('v-gen');
-    return !!box&&gen&&!gen.hidden&&!stageVisible&&cur>=0&&innerWidth<=900;
-  }
-  window.mirrorMini=function(){
-    if(!show()){box.classList.remove('on');return}
-    box.classList.add('on');
-    const W=cv.width,H=cv.height,w=320,h=Math.max(1,Math.round(w*H/W));
-    if(mc.width!==w||mc.height!==h){mc.width=w;mc.height=h}
-    mc.getContext('2d').drawImage(cv,0,0,w,h);
-    no.textContent=(cur+1)+' / '+photos.length;
-  };
-  if('IntersectionObserver' in window){
-    new IntersectionObserver(es=>{stageVisible=es[0].isIntersecting;mirrorMini()},{threshold:.05}).observe($('stage'));
-  }
-  box.addEventListener('click',()=>{$('stage').scrollIntoView({behavior:'smooth',block:'center'})});
-  addEventListener('resize',()=>mirrorMini());
-})();
-
 setTimeout(()=>map.invalidateSize(),300);
 </script>
 
@@ -1684,7 +1553,7 @@ async function autoDb(list){
   else if(n)toast('Tersimpan juga ke database ('+n+' foto).');
 }
 async function dlAll(){
-  if(!photos.length)return;readInputs();if(!warnUnset())return;
+  if(!photos.length)return;readInputs();
   try{
     for(let i=0;i<photos.length;i++){
       toast('Mengunduh '+(i+1)+'/'+photos.length+'…');
@@ -1758,10 +1627,39 @@ async function doLogin(){
   }
   if(!r.invalid)$('loginUrlRow').hidden=false;
   if(r.locked){er.textContent=r.error;return}
-  fails++;er.textContent=r.invalid?'Kode salah, atau akun ini belum disinkronkan oleh admin.':(/rahasia|tidak dikenal/i.test(r.error||'')?'Database belum diperbarui. Admin perlu deploy ulang Apps Script (versi terbaru).':(r.error||'Gagal memeriksa akun.'));
-  if(r.invalid)$('loginCode').select();
+  fails++;er.textContent=r.invalid?'Kode belum terdaftar. Lakukan pembayaran lewat panel di bawah untuk mendapatkan token.':(/rahasia|tidak dikenal/i.test(r.error||'')?'Database belum diperbarui. Admin perlu deploy ulang Apps Script (versi terbaru).':(r.error||'Gagal memeriksa akun.'));
+  if(r.invalid){$('loginCode').select();showPay(true)}
   if(fails>=3){lockUntil=Date.now()+30000;fails=0;er.textContent='Gagal 3 kali. Tunggu 30 detik.'}
 }
+/* ---------- pembayaran token ---------- */
+const PAY={
+  harga:0,                       /* nominal dalam rupiah, contoh 50000 (isi sebelum dipakai) */
+  paket:'Token akses GRID',      /* nama paket */
+  bank:'',                       /* contoh: BCA / BRI / DANA */
+  norek:'',                      /* nomor rekening / nomor e-wallet */
+  atasNama:'',                   /* nama pemilik rekening */
+  wa:'6283834294123'             /* WhatsApp penerima konfirmasi, format 62... */
+};
+const rp=n=>'Rp'+Number(n||0).toLocaleString('id-ID');
+function renderPay(){
+  const ok=PAY.bank&&PAY.norek&&PAY.atasNama&&PAY.harga>0;
+  $('payPkg').textContent=PAY.paket;
+  $('payAmt').textContent=PAY.harga>0?rp(PAY.harga):'-';
+  $('payAcc').innerHTML=ok
+    ?'<div>Transfer ke <b>'+esc(PAY.bank)+'</b></div><div class="no"><span id="payNo">'+esc(PAY.norek)+'</span><button type="button" id="payCopy">Salin</button></div><div>a.n. <b>'+esc(PAY.atasNama)+'</b></div>'
+    :'<div>Info rekening belum diisi pemilik aplikasi. Hubungi admin lewat WhatsApp untuk meminta nomor rekening.</div>';
+}
+function showPay(on){const b=$('payBox');b.classList.toggle('show',on===undefined?!b.classList.contains('show'):on);if(b.classList.contains('show')){renderPay();b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
+$('payToggle').onclick=()=>showPay();
+$('payAcc').addEventListener('click',e=>{if(e.target.id==='payCopy'){try{navigator.clipboard.writeText(PAY.norek);e.target.textContent='Tersalin'}catch(x){e.target.textContent='Salin manual'}}});
+$('payWa').onclick=()=>{
+  const nm=$('payNama').value.trim(),kd=$('payKode').value.replace(/\s+/g,''),n=$('payNote');
+  if(nm.length<3){n.textContent='Isi nama Anda.';return}
+  if(kd.length<4){n.textContent='Kode token minimal 4 karakter.';return}
+  n.textContent='';
+  const t='Halo admin GRID, saya mau beli token akses.\n\nNama: '+nm+'\nKode token yang diinginkan: '+kd+(PAY.harga>0?'\nNominal transfer: '+rp(PAY.harga):'')+'\n\nBukti transfer saya lampirkan di chat ini.';
+  window.open('https://wa.me/'+PAY.wa+'?text='+encodeURIComponent(t),'_blank','noopener');
+};
 $('loginShow').onclick=()=>{const i=$('loginCode');i.type=i.type==='password'?'text':'password';$('loginShow').textContent=i.type==='password'?'Tampilkan':'Sembunyikan'};
 document.addEventListener('click',e=>{
   if(!e.target.closest('[data-act="logout"]'))return;
