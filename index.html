@@ -538,6 +538,7 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
       <div><label for="lng">Longitude</label><input id="lng" type="number" step="0.000001"></div>
     </div>
     <label class="chk"><input id="auto" type="checkbox" checked> Isi nama &amp; alamat otomatis saat pin dipindah</label>
+    <label class="chk"><input id="autoNext" type="checkbox" checked> Pindah otomatis ke foto berikutnya setelah klik peta</label>
     <label for="title">Judul lokasi (baris besar)</label>
     <input id="title" type="text">
     <div id="admChips" class="chips" style="display:none"></div>
@@ -1152,7 +1153,19 @@ function setPos(lat,lng,opts){
   sched();
   if(!opts.noReverse&&$('auto').checked){clearTimeout(rgT);const d=D();rgT=setTimeout(()=>reverse(lat,lng,d),700)}
 }
-map.on('click',e=>setPos(e.latlng.lat,e.latlng.lng));
+let advT=0;
+try{if(localStorage.getItem('grid-autonext-v1')==='0')$('autoNext').checked=false}catch(e){}
+$('autoNext').addEventListener('change',()=>{try{localStorage.setItem('grid-autonext-v1',$('autoNext').checked?'1':'0')}catch(e){}});
+map.on('click',e=>{
+  const lat=e.latlng.lat,lng=e.latlng.lng,d=D(),idx=cur;
+  setPos(lat,lng,{noReverse:true});
+  clearTimeout(rgT);
+  if($('auto').checked)reverse(lat,lng,d); /* langsung, tanpa jeda */
+  if(!$('autoNext').checked||idx<0||photos.length<2)return;
+  if(idx>=photos.length-1){msg('Foto terakhir sudah diberi lokasi.');return}
+  clearTimeout(advT);
+  advT=setTimeout(()=>{if(cur===idx)goPhoto(1)},150);
+});
 marker.on('dragend',()=>{const p=marker.getLatLng();setPos(p.lat,p.lng)});
 ['lat','lng'].forEach(id=>$(id).addEventListener('change',()=>{
   const la=parseFloat($('lat').value),lo=parseFloat($('lng').value);
@@ -1164,8 +1177,17 @@ $('mapType').addEventListener('change',()=>{
 $('gps').onclick=()=>{
   if(!navigator.geolocation){msg('Perangkat tidak mendukung GPS.');return}
   msg('Mengambil lokasi…');
-  navigator.geolocation.getCurrentPosition(p=>{setPos(p.coords.latitude,p.coords.longitude,{pan:true,zoom:18});msg('Lokasi terisi.')},
-    ()=>msg('Izin lokasi ditolak/tidak tersedia.'),{enableHighAccuracy:true,timeout:12000});
+  const idx=cur,pakai=p=>setPos(p.coords.latitude,p.coords.longitude,{pan:true,zoom:18});
+  const gagal=()=>msg('Izin lokasi ditolak/tidak tersedia.');
+  /* 1) cepat: lokasi jaringan/cache; 2) lalu disempurnakan dengan GPS akurat di latar */
+  navigator.geolocation.getCurrentPosition(p=>{
+    pakai(p);msg('Lokasi terisi.');
+    navigator.geolocation.getCurrentPosition(q=>{
+      if(cur===idx&&q.coords.accuracy<p.coords.accuracy*0.8){pakai(q);msg('Lokasi disempurnakan.')}
+    },()=>{},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  },()=>{
+    navigator.geolocation.getCurrentPosition(p=>{pakai(p);msg('Lokasi terisi.')},gagal,{enableHighAccuracy:true,timeout:12000});
+  },{enableHighAccuracy:false,timeout:4000,maximumAge:300000});
 };
 
 /* ---------- geocoding (Nominatim) ---------- */
