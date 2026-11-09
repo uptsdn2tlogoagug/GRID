@@ -60,6 +60,8 @@ canvas#cv{max-width:100%;max-height:68vh;width:auto;height:auto;display:block}
 #thumbs img{width:100%;height:100%;object-fit:cover;display:block}
 #thumbs .add{display:grid;place-items:center;border:2px dashed var(--bd);color:var(--mut);font-size:22px}
 #thumbs .num{position:absolute;left:3px;bottom:3px;background:rgba(0,0,0,.6);color:#fff;font-size:.65rem;border-radius:6px;padding:0 5px}
+#thumbs .ck{position:absolute;right:3px;bottom:3px;width:18px;height:18px;border-radius:50%;background:#22c55e;color:#fff;font-size:.7rem;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px rgba(0,0,0,.35);animation:ckpop .25s ease-out}
+@keyframes ckpop{from{transform:scale(0)}to{transform:scale(1)}}
 #thumbs .grp{position:absolute;right:3px;top:3px;font-size:.6rem;line-height:1.3;background:rgba(0,0,0,.55);border-radius:6px;padding:0 3px}
 #editing{margin-top:4px}
 #map{height:290px;border-radius:14px;border:1px solid var(--bd);z-index:0;margin-top:10px}
@@ -1026,6 +1028,7 @@ async function select(i,skipRead){
   if(t!==selTok)return;
   curPrev=c;draw();
 }
+function ckEl(){const k=document.createElement('span');k.className='ck';k.textContent='✓';k.title='Lokasi GPS sudah diisi';return k}
 function listThumbs(){
   const t=$('thumbs');t.innerHTML='';
   photos.forEach((p,i)=>{
@@ -1034,11 +1037,11 @@ function listThumbs(){
     const n=document.createElement('span');n.className='num';n.textContent=i+1;
     const g=document.createElement('span');g.className='grp';g.textContent=grpOf(p)?'🌙':'☀️';
     if(i>0&&grpOf(p)!==grpOf(photos[i-1]))b.style.marginLeft='18px';
-    b.append(im,n,g);b.onclick=()=>select(i);t.appendChild(b);
+    b.append(im,n,g);if(p.gps)b.append(ckEl());b.onclick=()=>select(i);t.appendChild(b);
   });
   const a=document.createElement('label');a.className='add';a.htmlFor='file';a.textContent='+';a.title='Tambah foto';t.appendChild(a);
   const malam=photos.filter(p=>grpOf(p)).length;
-  $('grpInfo').textContent=photos.length?'☀️ Siang: '+(photos.length-malam)+' foto  ·  🌙 Malam: '+malam+' foto':'';
+  $('grpInfo').textContent=photos.length?'☀️ Siang: '+(photos.length-malam)+' foto  ·  🌙 Malam: '+malam+' foto'+'  ·  ✓ GPS: '+photos.filter(p=>p.gps).length+'/'+photos.length:'';
   const tg=$('togel');
   tg.disabled=cur<0;tg.textContent=cur>=0&&grpOf(photos[cur])?'☀️ Ubah ke siang':'🌙 Ubah ke malam';
   const has=photos.length>0;
@@ -1149,6 +1152,12 @@ function setPos(lat,lng,opts){
   opts=opts||{};
   $('lat').value=(+lat).toFixed(6);$('lng').value=(+lng).toFixed(6);readInputs();
   marker.setLatLng([lat,lng]);
+  if(cur>=0&&photos[cur]){
+    photos[cur].gps=true;
+    const tb=$('thumbs').children[cur];
+    if(tb&&!tb.querySelector('.ck'))tb.append(ckEl());
+    const gi=$('grpInfo');if(gi&&photos.length){const m=photos.filter(q=>grpOf(q)).length;gi.textContent='☀️ Siang: '+(photos.length-m)+' foto  ·  🌙 Malam: '+m+' foto  ·  ✓ GPS: '+photos.filter(q=>q.gps).length+'/'+photos.length}
+  }
   if(opts.pan)map.setView([lat,lng],opts.zoom||map.getZoom());
   sched();
   if(!opts.noReverse&&$('auto').checked){clearTimeout(rgT);const d=D();rgT=setTimeout(()=>reverse(lat,lng,d),700)}
