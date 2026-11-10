@@ -444,6 +444,15 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
 <style id="grid-gal">.gdbh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:26px 0 12px}.gdbh h2{margin:0;font:800 1.2rem var(--hd);letter-spacing:-.02em}.gdbh small{color:var(--mut)}
 .dbimg{aspect-ratio:4/3;background:linear-gradient(110deg,var(--fld) 30%,color-mix(in srgb,var(--cy) 14%,var(--fld)) 50%,var(--fld) 70%) 0 0/200% 100%;animation:shimmer 1.4s linear infinite}.dbimg.ok{animation:none;background:var(--fld)}.dbimg img{width:100%;height:100%;object-fit:cover;display:block;animation:viewIn .5s var(--ease) both}
 @keyframes shimmer{to{background-position:-200% 0}}</style>
+<style id="noanim">
+/* TANPA ANIMASI: semua animasi, transisi, scroll halus dan blur dimatikan agar ringan */
+*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.w-ring::before,.w-ring::after,.brand .logo::after,.lbrand .logo::after,.w-bar{display:none!important}
+.w-ring path{stroke-dashoffset:0!important}
+.side::before,#login::after{display:none!important}
+#thumbs button{content-visibility:auto;contain-intrinsic-size:56px 56px}
+#thumbs img{content-visibility:auto}
+</style>
 </head>
 <body>
 <section id="login" aria-label="Masuk">
@@ -858,16 +867,19 @@ function msg(t){$('msg').textContent=t;if(t)setTimeout(()=>{if($('msg').textCont
 
 /* ---------- photos (dekode hanya saat dibutuhkan, hemat memori) ---------- */
 function decode(file,max){
-  return new Promise(res=>{
+  const gambar=(w,h,src)=>{
+    const k=Math.min(1,max/Math.max(w,h)),c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+    c.getContext('2d').drawImage(src,0,0,c.width,c.height);return c;
+  };
+  const lama=()=>new Promise(res=>{
     const u=URL.createObjectURL(file),i=new Image();
-    i.onload=()=>{
-      const k=Math.min(1,max/Math.max(i.naturalWidth,i.naturalHeight)),c=document.createElement('canvas');
-      c.width=Math.max(1,Math.round(i.naturalWidth*k));c.height=Math.max(1,Math.round(i.naturalHeight*k));
-      c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c);
-    };
+    i.onload=()=>{const c=gambar(i.naturalWidth,i.naturalHeight,i);URL.revokeObjectURL(u);res(c)};
     i.onerror=()=>{URL.revokeObjectURL(u);res(null)};
     i.src=u;
   });
+  if(!window.createImageBitmap)return lama();
+  return createImageBitmap(file).then(bm=>{const c=gambar(bm.width,bm.height,bm);bm.close&&bm.close();return c}).catch(lama);
 }
 function mkThumb(c){
   const t=document.createElement('canvas');t.width=t.height=240;
@@ -1021,10 +1033,12 @@ async function addFiles(fs){
     }
     return {name:f.name.replace(/\.[^.]+$/,'')||'foto',file:f,th:mkThumb(c),d,malam};
   };
-  for(let k=0;k<fs.length;k+=4){
-    msg('Memuat foto '+Math.min(k+4,fs.length)+' dari '+fs.length+'…');
-    const r=await Promise.all(fs.slice(k,k+4).map(prep));
+  for(let k=0;k<fs.length;k+=3){
+    msg('Memuat foto '+Math.min(k+3,fs.length)+' dari '+fs.length+'…');
+    const r=await Promise.all(fs.slice(k,k+3).map(prep));
     r.forEach(x=>{if(x)photos.push(x)});
+    if(cur<0&&photos.length)await select(0,true); /* foto pertama langsung tampil */
+    else if(k%12===0)listThumbs();
   }
   msg('');
   if(photos.length>first&&acakOn()){
@@ -1056,7 +1070,7 @@ function acakSemua(){
   msg(infoUrut(r)||'Jam semua foto sudah disusun ulang dari '+$('jamMulai').value.slice(0,5)+' dengan jarak '+jarakMenit()+' menit.');
 }
 /* cache pratinjau 1280px (LRU) + prefetch foto berikutnya agar pindah foto instan */
-const PV_MAX=12,pvCache=new Map();
+const PV_MAX=8,pvCache=new Map();
 function pvGet(p){
   let v=pvCache.get(p);
   if(v){pvCache.delete(p);pvCache.set(p,v);return v}
@@ -1091,14 +1105,14 @@ async function select(i,skipRead){
   const v=pvGet(photos[cur]);
   if(v.c){curPrev=v.c;draw()}
   else{curPrev=null;draw();const c=await v.pr;if(t!==selTok)return;curPrev=c;draw()}
-  prefetch(cur+1,3);prefetch(cur-1,1);
+  prefetch(cur+1,2);prefetch(cur-1,1);
 }
 function ckEl(){const k=document.createElement('span');k.className='ck';k.textContent='✓';k.title='Lokasi GPS sudah diisi';return k}
 function listThumbs(){
   const t=$('thumbs');t.innerHTML='';
   photos.forEach((p,i)=>{
     const b=document.createElement('button');b.type='button';b.className=i===cur?'on':'';b.title=(i+1)+'. '+p.name;
-    const im=document.createElement('img');im.src=p.th;im.alt=p.name;
+    const im=document.createElement('img');im.decoding='async';im.loading='lazy';im.src=p.th;im.alt=p.name;
     const n=document.createElement('span');n.className='num';n.textContent=i+1;
     const g=document.createElement('span');g.className='grp';g.textContent=grpOf(p)?'🌙':'☀️';
     if(i>0&&grpOf(p)!==grpOf(photos[i-1]))b.style.marginLeft='18px';
@@ -1115,7 +1129,7 @@ function listThumbs(){
   const on=t.querySelector('button.on');
   if(on)t.scrollTo({left:on.offsetLeft-(t.clientWidth-on.offsetWidth)/2});
   $('thPrev').disabled=cur<=0;$('thNext').disabled=cur<0||cur>=photos.length-1;
-  if(window.renderDash)renderDash();
+  const dv=$('v-dash');if(window.renderDash&&dv&&!dv.hidden)renderDash();
 }
 /* ---------- pindah foto cepat: tombol, shortcut Q/E, roda mouse ---------- */
 function goPhoto(delta){
@@ -1204,10 +1218,10 @@ $('time').addEventListener('change',()=>{readInputs();listThumbs()});
 
 /* ---------- peta interaktif ---------- */
 const START=[-6.883806,111.655407];
-const map=L.map('map',{doubleClickZoom:false}).setView(START,17);
+const map=L.map('map',{doubleClickZoom:false,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false,inertia:false}).setView(START,17);
 const layers={
-  sat:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri'}),
-  osm:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'})
+  sat:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,updateWhenZooming:false,keepBuffer:1,attribution:'Tiles © Esri'}),
+  osm:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,updateWhenZooming:false,keepBuffer:1,attribution:'© OpenStreetMap'})
 };
 layers.sat.addTo(map);
 const pinSvg='<svg class="pinicon" width="34" height="44" viewBox="0 0 34 44"><path d="M17 43C6 28 2 22 2 15 2 7.8 8.8 2 17 2s15 5.8 15 13c0 7-4 13-15 28z" fill="#e53935" stroke="#fff" stroke-width="2"/><circle cx="17" cy="15" r="5.5" fill="#7f1d1d"/></svg>';
@@ -1470,7 +1484,7 @@ document.addEventListener('click',e=>{
 });
 const _af=addFiles;addFiles=async fs=>{await _af(fs);if(photos.length)setView('gen')};
 
-const dmap=L.map('dmap').setView(START,9);
+const dmap=L.map('dmap',{zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false,inertia:false}).setView(START,9);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dmap);
 const dgrp=L.layerGroup().addTo(dmap);
 
@@ -1771,7 +1785,7 @@ document.addEventListener('click',e=>{
 /* ---------- mode ringan, backup & pemulihan ---------- */
 const LIGHTK='grid-light-mode-v1';
 const lightBox=$('lightMode');
-if(lightBox){try{lightBox.checked=localStorage.getItem(LIGHTK)==='1'}catch(e){}
+if(lightBox){try{lightBox.checked=localStorage.getItem(LIGHTK)!=='0'}catch(e){}
 document.documentElement.classList.toggle('light-mode',!!lightBox.checked);
 lightBox.addEventListener('change',()=>{document.documentElement.classList.toggle('light-mode',lightBox.checked);try{localStorage.setItem(LIGHTK,lightBox.checked?'1':'0')}catch(e){};toast(lightBox.checked?'Mode ringan aktif.':'Mode normal aktif.')});}
 async function backupAction(action,extra){return dbCall(action,extra||{})}
@@ -1838,7 +1852,7 @@ function renderPay(){
     +'<div>a.n. <b>'+esc(PAY.atasNama)+'</b></div>';
 }
 $('payPk').addEventListener('click',e=>{const b=e.target.closest('[data-pk]');if(!b)return;paySel=+b.dataset.pk;renderPay()});
-function showPay(on){const b=$('payBox');b.classList.toggle('show',on===undefined?!b.classList.contains('show'):on);if(b.classList.contains('show')){renderPay();b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
+function showPay(on){const b=$('payBox');b.classList.toggle('show',on===undefined?!b.classList.contains('show'):on);if(b.classList.contains('show')){renderPay();b.scrollIntoView({block:'nearest',behavior:'auto'})}}
 $('payToggle').onclick=()=>showPay();
 $('payAcc').addEventListener('click',e=>{const c=e.target.dataset&&e.target.dataset.copy;if(c){try{navigator.clipboard.writeText(c);e.target.textContent='Tersalin'}catch(x){e.target.textContent='Salin manual'}}});
 $('payWa').onclick=()=>{
