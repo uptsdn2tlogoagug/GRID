@@ -553,6 +553,12 @@ input:focus,select:focus,textarea:focus,#loginCode:focus,input[type=password]:fo
     <label class="chk"><input id="autoLok" type="checkbox" checked> Auto lokasi untuk foto baru (prioritas Kec. Jatirogo)</label>
     <div class="btns"><button class="btn" id="autoLokBtn" type="button">🤖 Auto lokasi semua foto (Jatirogo)</button></div>
     <div id="alInfo" class="hint"></div>
+    <details id="desaBox" class="hint" style="margin:8px 0">
+      <summary style="cursor:pointer">🏘️ Daftar desa Kec. Jatirogo (<span id="desaN">18</span> dipilih) untuk auto lokasi</summary>
+      <div class="btns" style="margin:8px 0"><button class="btn" id="desaAll" type="button">Pilih semua</button><button class="btn" id="desaNone" type="button">Kosongkan</button></div>
+      <div id="desaList"></div>
+      <p class="hint">Auto lokasi hanya memakai desa yang dicentang (kosong = semua 18 desa). Tombol 📍 memindahkan pin foto yang sedang dipilih ke desa itu.</p>
+    </details>
     <label for="title">Judul lokasi (baris besar)</label>
     <input id="title" type="text">
     <div id="admChips" class="chips" style="display:none"></div>
@@ -1351,13 +1357,49 @@ function tandaiGps(p){
   if(tb&&!tb.querySelector('.ck'))tb.append(ckEl());
 }
 const JT_DEF={title:'Kecamatan Jatirogo, Jawa Timur, Indonesia',addr:'Jalan, Klagon, Wotsogo, Kec. Jatirogo, Kabupaten Tuban, Jawa Timur 62362, Indonesia'};
-function terapkanJangkar(list,anchors){
+/* ---------- DAFTAR DESA Kecamatan Jatirogo (18 desa/kelurahan; sumber: BPS Kab. Tuban) ---------- */
+const DESA_JT=['Bader','Besowo','Demit','Dingil','Jatiklabang','Jombok','Karangtengah','Kebonharjo','Kedungmakam','Ketodan','Ngepon','Paseyan','Sadang','Sekaran','Sidomulyo','Sugihan','Wangi','Wotsogo'];
+const DESA_K='grid-desa-v1',DESA_G='grid-desa-geo-v1';
+const WIDE={s:-6.99,n:-6.78,w:111.55,e:111.78};
+const desaTitle=n=>n+', Kec. Jatirogo, Kabupaten Tuban, Jawa Timur, Indonesia';
+function desaSel(){
+  try{const a=JSON.parse(localStorage.getItem(DESA_K));if(Array.isArray(a))return a.filter(x=>DESA_JT.includes(x))}catch(e){}
+  return DESA_JT.slice();
+}
+function geoCache(){try{return JSON.parse(localStorage.getItem(DESA_G))||{}}catch(e){return {}}}
+const norm=t=>String(t||'').toLowerCase().replace(/[^a-z]/g,'');
+/* cari titik tengah desa lewat peta (sekali saja, hasil disimpan permanen di browser) */
+async function desaGeo(nama,skip){
+  const c=geoCache();if(c[nama])return c[nama];
+  for(const q of ['Desa '+nama+', Kecamatan Jatirogo, Tuban','Desa '+nama+', Jatirogo']){
+    let arr=null;
+    try{
+      arr=await nomQ(async()=>{
+        const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=id&countrycodes=id&bounded=1&viewbox='+[WIDE.w,WIDE.n,WIDE.e,WIDE.s].join(',')+'&q='+encodeURIComponent(q));
+        if(!r.ok)throw new Error('http '+r.status);return r.json();
+      },skip);
+    }catch(e){return null}
+    if(skip&&skip())return null;
+    if(!arr)continue;
+    for(const it of arr){
+      const txt=JSON.stringify(it.address||{})+' '+(it.display_name||''),la=+it.lat,lo=+it.lon;
+      /* harus di Kec. Jatirogo, bukan Kenduruan/kecamatan lain, dan memuat nama desanya */
+      if(/jatirogo/i.test(txt)&&!/kenduruan/i.test(txt)&&norm(txt).includes(norm(nama))&&la>=WIDE.s&&la<=WIDE.n&&lo>=WIDE.w&&lo<=WIDE.e){
+        const g={la:+la.toFixed(6),lo:+lo.toFixed(6),addr:it.display_name||desaTitle(nama)};
+        const cc=geoCache();cc[nama]=g;try{localStorage.setItem(DESA_G,JSON.stringify(cc))}catch(e){}
+        return g;
+      }
+    }
+  }
+  return null;
+}
+function terapkanDesa(list,geos){
   list.forEach((p,i)=>{
     if(!p.auto)return;
-    const a=anchors[i%anchors.length];
-    p.d.lat=(a.la+(Math.random()*2-1)*0.0006).toFixed(6);
-    p.d.lng=(a.lo+(Math.random()*2-1)*0.0006).toFixed(6);
-    p.d.title=a.title;p.d.addr=a.addr;
+    const g=geos[Math.min(geos.length-1,Math.floor(i*geos.length/list.length))];
+    p.d.lat=(g.la+(Math.random()*2-1)*0.0007).toFixed(6);
+    p.d.lng=(g.lo+(Math.random()*2-1)*0.0007).toFixed(6);
+    p.d.title=desaTitle(g.nama);p.d.addr=g.addr;
   });
   if(cur>=0&&list.includes(photos[cur])){loadInputs();sched()}
 }
@@ -1369,31 +1411,44 @@ async function autoLokasi(list){
   list.forEach(p=>{setJtPoint(p);p.auto=true;p.d.title=JT_DEF.title;p.d.addr=JT_DEF.addr;p.gps=true});
   listThumbs();
   if(cur>=0&&list.includes(photos[cur])){loadInputs();sched()}
-  /* 2) cari beberapa titik "jangkar" yang terbukti berada di Jatirogo (nama desa + alamat asli),
-        lalu foto dibagi ke jangkar-jangkar itu; hanya ~10 permintaan walau fotonya ratusan */
-  const K=Math.min(list.length,10),anchors=[];
-  let tries=0;
-  while(anchors.length<K&&tries<K*3){
+  /* 2) pakai desa yang dicentang (kosong = ke-18 desa Kec. Jatirogo); foto dibagi rata per desa */
+  const sel=desaSel(),names=sel.length?sel:DESA_JT,geos=[],gagal=[];
+  for(let i=0;i<names.length;i++){
     if(run!==alRun)return;
-    tries++;alInfo('Auto lokasi: mencari nama desa Jatirogo… '+anchors.length+'/'+K);
-    const q=acakJt();let j=null;
-    try{j=await nomQ(()=>nomReverse(q[0],q[1]),()=>run!==alRun)}catch(e){break}
+    alInfo('Auto lokasi: memuat desa '+(i+1)+'/'+names.length+' ('+names[i]+')…');
+    const g=await desaGeo(names[i],()=>run!==alRun);
     if(run!==alRun)return;
-    const ad=j&&j.address;
-    if(ad&&/jatirogo/i.test(JSON.stringify(ad))){
-      const c=admCandidates(ad);
-      anchors.push({la:q[0],lo:q[1],title:c.length?c[0].title:JT_DEF.title,addr:j.display_name||JT_DEF.addr});
-      if(anchors.length===1)terapkanJangkar(list,anchors); /* foto langsung dapat nama desa pertama */
-    }
+    if(g){geos.push(Object.assign({nama:names[i]},g));if(geos.length===1)terapkanDesa(list,geos)}else gagal.push(names[i]);
   }
   if(run!==alRun)return;
-  if(anchors.length){
-    terapkanJangkar(list,anchors);
-    const desa=[...new Set(anchors.map(x=>x.title.split(',')[0]))];
-    alInfo('✓ Auto lokasi selesai untuk '+list.length+' foto di Kec. Jatirogo (desa: '+desa.join(', ')+').');
-  }else alInfo('Nama desa belum bisa diambil (internet/peta sibuk). Foto diberi lokasi Kec. Jatirogo; coba tekan tombol Auto lokasi lagi nanti.');
+  if(geos.length){
+    terapkanDesa(list,geos);
+    alInfo('✓ Auto lokasi selesai: '+list.length+' foto di '+geos.length+' desa Kec. Jatirogo.'+(gagal.length?' Belum ditemukan di peta: '+gagal.join(', ')+'.':''));
+  }else alInfo('Desa belum bisa dimuat (internet/peta sibuk). Foto diberi lokasi Kec. Jatirogo; coba lagi nanti.');
   list.forEach(p=>{p.auto=false});
 }
+/* pindahkan pin foto yang sedang dipilih ke desa tertentu */
+async function pergiDesa(nama){
+  msg('Mencari desa '+nama+'…');
+  const g=await desaGeo(nama);
+  if(!g){msg('Desa '+nama+' belum ditemukan di peta. Klik manual di peta.');return}
+  const d=D();d._rg=++rgId;
+  setPos(g.la,g.lo,{pan:true,zoom:16,noReverse:true});
+  $('title').value=desaTitle(nama);$('addr').value=g.addr;readInputs();renderChips([]);sched();
+  msg('Lokasi: Desa '+nama+'.');
+}
+function renderDesa(){
+  const box=$('desaList');if(!box)return;
+  const sel=new Set(desaSel());
+  box.innerHTML=DESA_JT.map(n=>'<div style="display:flex;align-items:center;gap:8px;margin:5px 0"><label class="chk" style="margin:0;flex:1"><input type="checkbox" data-desa="'+n+'"'+(sel.has(n)?' checked':'')+'> '+n+'</label><button class="btn" type="button" data-go="'+n+'" title="Pindahkan pin foto ini ke Desa '+n+'" style="padding:4px 10px">📍</button></div>').join('');
+  const upd=()=>{const a=[...box.querySelectorAll('input[data-desa]:checked')].map(x=>x.dataset.desa);try{localStorage.setItem(DESA_K,JSON.stringify(a))}catch(e){}$('desaN').textContent=a.length||'semua';};
+  box.addEventListener('change',upd);
+  box.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)pergiDesa(b.dataset.go)});
+  $('desaAll').onclick=()=>{box.querySelectorAll('input[data-desa]').forEach(x=>x.checked=true);upd()};
+  $('desaNone').onclick=()=>{box.querySelectorAll('input[data-desa]').forEach(x=>x.checked=false);upd()};
+  upd();
+}
+renderDesa();
 $('autoLokBtn').onclick=()=>autoLokasi();
 const res=$('results');let qT=0,qId=0;
 async function search(){
