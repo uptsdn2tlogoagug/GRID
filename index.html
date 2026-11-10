@@ -2000,13 +2000,17 @@ initMe();
 });
 </script>
 <script>
-/* ---------- kompres foto (target ±50% ukuran asli) ---------- */
-const CMPK='grid-compress-v1';
+/* ---------- kompres foto (target ukuran dipilih: 70% / 50% / 30% / 20% dari ukuran asli) ---------- */
+const CMPK='grid-compress-v1',CMPR='grid-compress-ratio-v1';
+const cmpRatio=()=>{try{const v=parseFloat(localStorage.getItem(CMPR));return v>=.1&&v<=.9?v:.3}catch(e){return .3}};
 const cmpOn=()=>{try{return localStorage.getItem(CMPK)!=='0'}catch(e){return true}};
 (function(){
   const lm=$('lightMode');if(!lm)return;
-  lm.closest('label').insertAdjacentHTML('afterend','<label class="chk" style="color:#cfe2d9;margin:0 0 8px"><input id="cmpOn" type="checkbox"> Kompres foto (target 50%)</label>');
+  lm.closest('label').insertAdjacentHTML('afterend','<label class="chk" style="color:#cfe2d9;margin:0 0 8px"><input id="cmpOn" type="checkbox"> Kompres foto</label><label class="chk" style="color:#cfe2d9;margin:0 0 8px;gap:6px">Ukuran hasil: <select id="cmpLvl" style="padding:4px 6px;border-radius:8px"><option value="0.7">±70% (kualitas tinggi)</option><option value="0.5">±50% (sedang)</option><option value="0.3">±30% (kecil)</option><option value="0.2">±20% (sangat kecil)</option></select></label>');
   const c=$('cmpOn');c.checked=cmpOn();c.addEventListener('change',()=>{try{localStorage.setItem(CMPK,c.checked?'1':'0')}catch(e){}});
+  const l=$('cmpLvl'),r=cmpRatio();l.value=[...l.options].some(o=>+o.value===r)?String(r):'0.3';
+  const lab=()=>{c.parentElement.lastChild.textContent=' Kompres foto (kecilkan ukuran file)'};lab();
+  l.addEventListener('change',()=>{try{localStorage.setItem(CMPR,l.value)}catch(e){};toast('Ukuran hasil kompres: ±'+Math.round(l.value*100)+'% dari foto asli.')});
 })();
 const toJpg=(cv,q)=>new Promise(r=>cv.toBlob(r,'image/jpeg',q));
 async function shrink(c,target){
@@ -2017,17 +2021,17 @@ async function shrink(c,target){
     const w=Math.max(1,Math.round(c.width*k)),h=Math.max(1,Math.round(c.height*k));
     if(Math.max(w,h)<420)break;
     const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(c,0,0,w,h);
-    for(const q of [.7,.5]){b=await toJpg(cv,q);if(b.size<=target)return b}
+    for(const q of [.72,.58,.45]){b=await toJpg(cv,q);if(b.size<=target)return b}
     k*=.82;
   }
   return b;
 }
 const blobB64=b=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(b)});
-/* simpan ke database: foto mentah, dikompres ±50% dari ukuran asli */
+/* simpan ke database: foto mentah, dikompres sesuai pilihan ukuran */
 dbSave=async function(p){
   if(p.dbId)return;
   const c=await decode(p.file,3000);if(!c)throw new Error('Foto tidak bisa dibaca.');
-  const b=cmpOn()?await shrink(c,p.file.size*.5):await toJpg(c,.85);
+  const b=cmpOn()?await shrink(c,p.file.size*cmpRatio()):await toJpg(c,.85);
   const r=await dbCall('save',{image:await blobB64(b),meta:{name:p.name,d:{}}});
   p.dbId=r.data.id;p.dbSig='raw';
 };
@@ -2039,7 +2043,7 @@ blobFor=async function(p,type){
   const s=S(p.d),tc=s.showMap?await thumbFor(s,true):null;
   if(s.showMap&&!tc)msg('Peta mini gagal dimuat (koneksi/diblokir).');
   overlay(c.getContext('2d'),c.width,c.height,s,tc);
-  return shrink(c,p.file.size*.5);
+  return shrink(c,p.file.size*cmpRatio());
 };
 /* ---------- galeri: foto yang tertaut di database ---------- */
 let dbItems=[];const dbThumb=new Map(),tq=[];let tBusy=0,tObs=null;
