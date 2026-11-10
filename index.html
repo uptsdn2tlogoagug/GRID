@@ -1384,7 +1384,7 @@ async function desaGeo(nama,skip){
     for(const it of arr){
       const txt=JSON.stringify(it.address||{})+' '+(it.display_name||''),la=+it.lat,lo=+it.lon;
       /* harus di Kec. Jatirogo, bukan Kenduruan/kecamatan lain, dan memuat nama desanya */
-      if(/jatirogo/i.test(txt)&&!/kenduruan/i.test(txt)&&norm(txt).includes(norm(nama))&&la>=WIDE.s&&la<=WIDE.n&&lo>=WIDE.w&&lo<=WIDE.e){
+      if(!/kenduruan/i.test(txt)&&norm(txt).includes(norm(nama))&&la>=WIDE.s&&la<=WIDE.n&&lo>=WIDE.w&&lo<=WIDE.e){
         const g={la:+la.toFixed(6),lo:+lo.toFixed(6),addr:it.display_name||desaTitle(nama)};
         const cc=geoCache();cc[nama]=g;try{localStorage.setItem(DESA_G,JSON.stringify(cc))}catch(e){}
         return g;
@@ -1393,15 +1393,34 @@ async function desaGeo(nama,skip){
   }
   return null;
 }
-function terapkanDesa(list,geos){
+/* kumpulan titik terbukti: {desa:[{la,lo,addr}]} disimpan di browser, makin dipakai makin lengkap */
+const DESA_P='grid-desa-pts-v1',SAMP={s:-6.945,n:-6.825,w:111.595,e:111.715};
+function ptsCache(){try{return JSON.parse(localStorage.getItem(DESA_P))||{}}catch(e){return {}}}
+function ptsSimpan(c){try{localStorage.setItem(DESA_P,JSON.stringify(c))}catch(e){}}
+function desaDariAlamat(j){
+  const a=j&&j.address;if(!a)return null;
+  if(/kenduruan/i.test(JSON.stringify(a)+' '+(j.display_name||'')))return null;
+  for(const c of [a.village,a.suburb,a.hamlet,a.neighbourhood,a.quarter,a.town,a.city_district]){
+    if(!c)continue;const k=norm(c).replace(/^(desa|kelurahan)/,'');
+    const n=DESA_JT.find(d=>norm(d)===k);if(n)return n;
+  }
+  return null;
+}
+function acak(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr}
+/* bagi foto ke desa-desa yang sudah punya titik: merata tapi urutannya diacak */
+function terapkanAcak(list,names,pool){
+  const ds=names.filter(n=>(pool[n]||[]).length);
+  if(!ds.length)return false;
+  const arr=acak(list.map((_,i)=>ds[i%ds.length]));
   list.forEach((p,i)=>{
     if(!p.auto)return;
-    const g=geos[Math.min(geos.length-1,Math.floor(i*geos.length/list.length))];
-    p.d.lat=(g.la+(Math.random()*2-1)*0.0007).toFixed(6);
-    p.d.lng=(g.lo+(Math.random()*2-1)*0.0007).toFixed(6);
-    p.d.title=desaTitle(g.nama);p.d.addr=g.addr;
+    const n=arr[i],pts=pool[n],g=pts[Math.floor(Math.random()*pts.length)];
+    p.d.lat=(g.la+(Math.random()*2-1)*0.0002).toFixed(6);
+    p.d.lng=(g.lo+(Math.random()*2-1)*0.0002).toFixed(6);
+    p.d.title=desaTitle(n);p.d.addr=g.addr||desaTitle(n);
   });
   if(cur>=0&&list.includes(photos[cur])){loadInputs();sched()}
+  return true;
 }
 async function autoLokasi(list){
   list=(list||photos.filter(p=>!p.gps)).filter(p=>photos.includes(p));
@@ -1411,20 +1430,33 @@ async function autoLokasi(list){
   list.forEach(p=>{setJtPoint(p);p.auto=true;p.d.title=JT_DEF.title;p.d.addr=JT_DEF.addr;p.gps=true});
   listThumbs();
   if(cur>=0&&list.includes(photos[cur])){loadInputs();sched()}
-  /* 2) pakai desa yang dicentang (kosong = ke-18 desa Kec. Jatirogo); foto dibagi rata per desa */
-  const sel=desaSel(),names=sel.length?sel:DESA_JT,geos=[],gagal=[];
-  for(let i=0;i<names.length;i++){
+  /* 2) sebar acak ke desa terpilih memakai titik yang sudah terbukti berada di desa itu (dari peta) */
+  const sel=desaSel(),names=sel.length?sel:DESA_JT,pool=ptsCache();
+  const ada=()=>names.filter(n=>(pool[n]||[]).length);
+  if(ada().length)terapkanAcak(list,names,pool); /* titik tersimpan -> langsung tersebar */
+  let tries=0;const maks=Math.min(48,names.length*3+6);
+  while(tries<maks&&ada().length<names.length){
     if(run!==alRun)return;
-    alInfo('Auto lokasi: memuat desa '+(i+1)+'/'+names.length+' ('+names[i]+')…');
-    const g=await desaGeo(names[i],()=>run!==alRun);
+    tries++;
+    alInfo('Auto lokasi: menjelajah peta Jatirogo… '+ada().length+'/'+names.length+' desa ditemukan');
+    const la=SAMP.s+Math.random()*(SAMP.n-SAMP.s),lo=SAMP.w+Math.random()*(SAMP.e-SAMP.w);
+    let j=null;
+    try{j=await nomQ(()=>nomReverse(la,lo),()=>run!==alRun)}catch(e){break}
     if(run!==alRun)return;
-    if(g){geos.push(Object.assign({nama:names[i]},g));if(geos.length===1)terapkanDesa(list,geos)}else gagal.push(names[i]);
+    const d=desaDariAlamat(j);if(!d)continue;
+    pool[d]=pool[d]||[];
+    if(pool[d].length<10){
+      const lama=ada().length;
+      pool[d].push({la:+la.toFixed(6),lo:+lo.toFixed(6),addr:j.display_name||desaTitle(d)});ptsSimpan(pool);
+      if(names.includes(d)&&ada().length>lama)terapkanAcak(list,names,pool); /* desa baru ditemukan -> sebar ulang */
+    }
   }
   if(run!==alRun)return;
-  if(geos.length){
-    terapkanDesa(list,geos);
-    alInfo('✓ Auto lokasi selesai: '+list.length+' foto di '+geos.length+' desa Kec. Jatirogo.'+(gagal.length?' Belum ditemukan di peta: '+gagal.join(', ')+'.':''));
-  }else alInfo('Desa belum bisa dimuat (internet/peta sibuk). Foto diberi lokasi Kec. Jatirogo; coba lagi nanti.');
+  const ok=ada(),gagal=names.filter(n=>!ok.includes(n));
+  if(ok.length){
+    terapkanAcak(list,names,pool);
+    alInfo('✓ Auto lokasi selesai: '+list.length+' foto tersebar acak di '+ok.length+' desa Kec. Jatirogo ('+ok.join(', ')+').'+(gagal.length?' Belum ditemukan: '+gagal.join(', ')+' (tekan Auto lokasi lagi untuk mencari).':''));
+  }else alInfo('Belum ada desa yang berhasil dimuat (internet/peta sibuk). Foto diberi lokasi Kec. Jatirogo; coba tekan Auto lokasi lagi.');
   list.forEach(p=>{p.auto=false});
 }
 /* pindahkan pin foto yang sedang dipilih ke desa tertentu */
@@ -1432,6 +1464,8 @@ async function pergiDesa(nama){
   msg('Mencari desa '+nama+'…');
   const g=await desaGeo(nama);
   if(!g){msg('Desa '+nama+' belum ditemukan di peta. Klik manual di peta.');return}
+  const pc=ptsCache();pc[nama]=pc[nama]||[];
+  if(pc[nama].length<10&&!pc[nama].some(x=>x.la===g.la&&x.lo===g.lo)){pc[nama].push({la:g.la,lo:g.lo,addr:g.addr});ptsSimpan(pc)}
   const d=D();d._rg=++rgId;
   setPos(g.la,g.lo,{pan:true,zoom:16,noReverse:true});
   $('title').value=desaTitle(nama);$('addr').value=g.addr;readInputs();renderChips([]);sched();
